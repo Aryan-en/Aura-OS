@@ -8,9 +8,9 @@
 
 The AURA user interface is built upon a fundamental departure from legacy graphical desktop paradigms:
 
-1. **Voice-First, Multi-Modal Fallback**: Speech is the primary interaction medium; visual components exist to provide high-bandwidth observability, ambient reassurance, and interactive confirmation for critical actions.
+1. **Voice-First & Gesture-Powered Multimodal Paradigm**: Speech combined with camera-tracked 3D hand gestures forms the primary interaction medium (inspired by JARVIS); visual components provide real-time spatial grounding, ambient reassurance, and interactive confirmation for critical actions.
 2. **Ambient & Non-Intrusive**: The interface is quiet and unobtrusive by default. It does not look like a perpetual chatbot window pinned to the screen. It emerges gracefully when intent is detected and melts away once verification is complete.
-3. **Context-Aware Presence**: Surfaces adapt dynamically based on what the user is doing—displaying code diffs when programming, document summaries when reading, and file graphs when organizing.
+3. **Context-Aware Presence**: Surfaces adapt dynamically based on what the user is doing—displaying code diffs when programming, document summaries when reading, and spatial reticles when pointing.
 4. **Native Wayland Performance**: Implemented natively in **Rust** using **GTK4** and `gtk4-layer-shell` for buttery 60fps animations, sub-16ms render times, and minimal memory footprint (<50MB RSS).
 5. **Futuristic Yet Utilitarian**: Incorporates subtle frosted glassmorphism, luminous state indicators, and fluid physics curves without sacrificing clarity, accessibility, or keyboard efficiency.
 
@@ -35,8 +35,9 @@ Text Disabled:         #4B5568 (Subtle outline)
 #### State Color Mapping
 | State | Accent Hex | Visual Appearance | Voice / Audio Meaning |
 | :--- | :---: | :--- | :--- |
-| **IDLE** | `#64748B` | Subtle slate breathing luminescence | Ambient quiet, waiting for wake word |
+| **IDLE** | `#64748B` | Subtle slate breathing luminescence | Ambient quiet, waiting for wake word or gesture |
 | **LISTENING** | `#06B6D4` | Electric Cyan expanding waveform | Actively capturing and buffering microphone speech |
+| **GESTURE_TRACK**| `#14B8A6`| Luminous Teal reticle & orbital ring | Camera active; 3D hand raycasting onto Wayland surface |
 | **THINKING** | `#8B5CF6` | Deep Purple rotating internal shimmer | Decomposing goal, routing model, generating plan |
 | **EXECUTING** | `#10B981` | Emerald Green pulsating progress rings | Running sandboxed tools, compiling, moving files |
 | **SPEAKING** | `#3B82F6` | Sapphire Blue undulating speech waves | Neural TTS streaming audio out through speakers |
@@ -75,19 +76,23 @@ Text Disabled:         #4B5568 (Subtle outline)
 
 ---
 
-## 3. Voice Interaction State Machine
+## 3. Voice & Gesture Interaction State Machine
 
-The interaction between speech, visualization, and system state follows a deterministic finite state machine:
+The interaction between speech, hand kinematics, visualization, and system state follows a deterministic finite state machine:
 
 ```mermaid
 stateDiagram-v2
     [*] --> IDLE
     IDLE --> LISTENING: Wake Word ("Aura") Detected
+    IDLE --> GESTURE_ACTIVE: Hand Enters Camera FOV (Point / Gesture)
+    
+    GESTURE_ACTIVE --> LISTENING: User Speaks While Pointing ("Fix that")
+    GESTURE_ACTIVE --> IDLE: Hand Leaves FOV (Timeout >2s)
     
     LISTENING --> THINKING: Speech End (VAD Silence >300ms)
     LISTENING --> IDLE: Timeout (No Speech >5s)
     
-    THINKING --> PLANNING: Intent Parsed Successfully
+    THINKING --> PLANNING: Multimodal Intent Parsed (Voice + Spatial Target)
     THINKING --> SPEAKING: Direct Answer / Clarification
     THINKING --> ERROR: Intent Unrecognized
     
@@ -96,7 +101,7 @@ stateDiagram-v2
     state EXECUTING {
         [*] --> TOOL_RUNNING
         TOOL_RUNNING --> PERMISSION_REQUIRED: Policy = ASK_*
-        PERMISSION_REQUIRED --> TOOL_RUNNING: Human Approved (UI-007)
+        PERMISSION_REQUIRED --> TOOL_RUNNING: Push / In-Air Tap Approved (UI-007)
         PERMISSION_REQUIRED --> CANCELLED: Human Denied
         TOOL_RUNNING --> VERIFYING: Tool Succeeded
         VERIFYING --> TOOL_RUNNING: Next Task in DAG
@@ -106,10 +111,10 @@ stateDiagram-v2
     }
     
     EXECUTING --> SPEAKING: All Tasks Completed & Verified
-    EXECUTING --> CANCELLED: User Interrupted / Escaped
+    EXECUTING --> CANCELLED: Open Palm Raised (GESTURE_PAUSE) / Esc
     
     SPEAKING --> IDLE: TTS Playback Complete
-    SPEAKING --> LISTENING: User Barge-in (Speech Detected)
+    SPEAKING --> LISTENING: User Barge-in (Speech or Open Palm)
     
     ERROR --> SPEAKING: Speak Error Explanation
     CANCELLED --> SPEAKING: Speak Cancellation Notice
@@ -123,15 +128,16 @@ stateDiagram-v2
 
 ### `UI-001` — Aura Orb
 - **Name**: Ambient Aura Orb
-- **Purpose**: The primary persistent visual indicator of AURA's presence, listening state, and thinking activity.
+- **Purpose**: The primary persistent visual indicator of AURA's presence, listening state, gesture tracking, and thinking activity.
 - **Status**: 🔵 Planned
 - **Priority**: P0
 - **Location**: Top-right status bar or floating ambient widget (user configurable).
-- **Trigger**: Persistent on desktop; state changes triggered by D-Bus signals from `org.auraos.Voice`.
-- **Inputs**: `VoiceState` (`IDLE`, `LISTENING`, `THINKING`, `EXECUTING`, `SPEAKING`, `ERROR`, `PERMISSION`).
+- **Trigger**: Persistent on desktop; state changes triggered by D-Bus signals from `org.auraos.Voice` and `org.auraos.Vision`.
+- **Inputs**: `VoiceState` (`IDLE`, `LISTENING`, `THINKING`, `EXECUTING`, `SPEAKING`, `ERROR`, `PERMISSION`), `VisionTrackingState`.
 - **States**:
   - `Idle`: 32px diameter, Slate (#64748B), slow 4-second breathing glow.
   - `Listening`: Expands to 48px, Electric Cyan (#06B6D4), reactive acoustic ripple.
+  - `Gesture Tracking`: Luminous Teal (#14B8A6), an outer orbital reticle ring rotates around the Orb when a hand is tracked in camera FOV.
   - `Thinking`: Deep Purple (#8B5CF6), fluid 360-degree internal shader rotation.
   - `Executing`: Emerald Green (#10B981), rhythmic harmonic pulse.
   - `Speaking`: Sapphire Blue (#3B82F6), undulating vertical waveform bars.
@@ -143,6 +149,7 @@ stateDiagram-v2
   - `Double Click`: Open `UI-004` (Agent Monitor).
 - **Keyboard Behavior**: `Super + Space` focuses and triggers Orb listening.
 - **Voice Behavior**: Wake word "Aura" transitions Orb to `LISTENING`.
+- **Gesture Behavior**: Raising an open palm toward camera triggers `GESTURE_PAUSE`, returning Orb to Idle / Paused.
 - **Accessibility**: Tooltip reports textual state; screen-reader accessible via AT-SPI.
 - **Dependencies**: Wayland layer-shell, GTK4.
 - **Implementation File**: `desktop/components/orb.rs`
@@ -263,7 +270,8 @@ stateDiagram-v2
   - `Deny` (Button / Escape)
   - `Inspect Diff` (Collapsible view)
 - **Keyboard Behavior**: `Enter` selects Allow (requires explicit tab or `Y` key); `Escape` selects Deny.
-- **Voice Behavior**: **VOICE CANNOT AUTHORIZE**. Voice saying "Approve" is ignored with prompt: *"Please click or press Enter to confirm."*
+- **Voice Behavior**: **VOICE ALONE CANNOT AUTHORIZE**. Voice saying "Approve" is ignored with prompt: *"Please click, press Enter, or perform an in-air push gesture to confirm."*
+- **Gesture Behavior**: An **In-Air Push / Tap (`GEST-005`)** directed toward the Allow button authorizes elevation hands-free while maintaining physical intent.
 - **Accessibility**: Modal traps focus; high contrast danger borders for `CRITICAL` risk level.
 - **Dependencies**: `desktop/shell`, Wayland layer-shell modal.
 - **Implementation File**: `desktop/components/permission_dialog.rs`
@@ -526,11 +534,37 @@ stateDiagram-v2
 
 ---
 
+### `UI-021` — Spatial Gesture Reticle
+- **Name**: 3D Spatial Reticle & Hand Pointer
+- **Purpose**: Real-time visual feedback tracking where the user's hand is pointing in 3D space on the Wayland desktop.
+- **Status**: 🔵 Planned
+- **Priority**: P1
+- **Location**: Floating Wayland overlay surface (`wlr-layer-shell`).
+- **Trigger**: Emitted D-Bus signal `org.auraos.Vision.HandPoseUpdated` when index finger is extended (`GESTURE_POINT`).
+- **Inputs**: 2D screen coordinates $(X_s, Y_s)$ from raycaster, velocity vector, gesture classification state.
+- **States**:
+  - `Hovering`: Subtle 24px luminous cyan circle with 4 corner tick-marks.
+  - `Target Locked`: Reticle snaps and pulses around the bounding box of the targeted Wayland window or UI element.
+  - `Pinching`: Reticle contracts to 12px diamond with glowing accent lines.
+  - `Pushing / Tapping`: Reticle emits an expanding ripple wave upon forward Z-axis impulse.
+- **Interactions**:
+  - Pointing at windows highlights them.
+  - In-air push selects or confirms focused buttons.
+  - Pinch-and-drag moves floating windows or pans task DAGs.
+- **Keyboard Behavior**: `Escape` or mouse movement temporarily hides reticle to prevent cursor contention.
+- **Voice Behavior**: Integrates with voice deictics (e.g. saying *"close that"* while reticle is locked on window closes it).
+- **Accessibility**: High visibility mode with enlarged reticle size (48px) and audible tick upon target lock.
+- **Dependencies**: `desktop/shell`, `aura/vision`.
+- **Implementation File**: `desktop/components/spatial_reticle.rs`
+- **Notes**: Employs 1-Euro smoothing algorithm to ensure zero jitter while maintaining sub-15ms motion tracking.
+
+---
+
 ## 5. Screen Registry
 
 | Screen ID | Name | Role | Primary Components | Trigger |
 | :--- | :--- | :--- | :--- | :--- |
-| **`DESKTOP-001`** | Ambient Wayland Desktop | Default system shell | `UI-001` Orb, `UI-002` Overlay, `UI-010` Toasts | System startup |
+| **`DESKTOP-001`** | Ambient Wayland Desktop | Default system shell | `UI-001` Orb, `UI-002` Overlay, `UI-021` Reticle, `UI-010` Toasts | System startup |
 | **`DESKTOP-002`** | Agent Monitor Screen | Full agent observability | `UI-004` Monitor, `UI-005` Cards, `UI-006` Graph | `Super + A` / Voice |
 | **`DESKTOP-003`** | Memory & Knowledge Browser | Inspect episodic/semantic stores| `UI-012` Memory Viewer, Table, Search | App Menu / Voice |
 | **`DESKTOP-004`** | Skills & Tools Registry | Tool configuration & MCP | `UI-013` Skill Manager, Permissions | App Menu / Voice |
@@ -549,15 +583,31 @@ Detailed specifications for the multi-sensory feedback (visual and auditory) emi
 | **`VOICEUI-002`** | **Thinking** | Orb transitions to Deep Purple (`#8B5CF6`) with a fluid 360° rotating shimmer; text transcript freezes and shows parsed intent. | Near-silent ambient micro-frequency hum indicating active inference. | User speech aborts current plan and restarts listening. |
 | **`VOICEUI-003`** | **Executing** | Orb pulses Emerald Green (`#10B981`); an Agent Card slides into the corner showing task progress and tool names. | Silent, or brief tactile clicking sound when tools execute. | User speech pauses execution and opens voice overlay. |
 | **`VOICEUI-004`** | **Speaking** | Orb undulates Sapphire Blue (`#3B82F6`) in sync with voice cadence; captions stream below overlay. | High-quality neural speech from Piper TTS speaking the verified outcome. | **Instant Barge-in**: User speech immediately mutes TTS and enters `VOICEUI-001`. |
-| **`VOICEUI-005`** | **Permission Request** | Orb flashes Amber (`#F59E0B`); screen dims; Permission Dialog (`UI-007`) takes focal center. | Aura speaks: *"Aura needs permission to modify auth_service.py. Please confirm."* | Speech alone cannot approve; requires physical click or Enter. |
+| **`VOICEUI-005`** | **Permission Request** | Orb flashes Amber (`#F59E0B`); screen dims; Permission Dialog (`UI-007`) takes focal center. | Aura speaks: *"Aura needs permission to modify auth_service.py. Please confirm."* | Speech alone cannot approve; requires physical click, Enter, or in-air push. |
 | **`VOICEUI-006`** | **Failure / Recovery** | Orb double-pulses Crimson (`#EF4444`); Recovery HUD (`UI-019`) appears with error breakdown. | Aura speaks: *"The tests failed due to an unresolved import. Would you like me to inspect it?"* | User can answer verbally to authorize replanning. |
 | **`VOICEUI-007`** | **Interrupted** | Orb snaps immediately to Cyan (`#06B6D4`); Voice Overlay clears previous transcript. | Instant cut-off of TTS audio (<20ms); soft reset chime. | Transitions immediately to `VOICEUI-001`. |
 
 ---
 
-## 7. Cross-Document Navigation
+## 7. Gesture Interaction Registry
+
+Canonical specifications for the physical kinematics, visual feedback, and system responses across the hand gesture vocabulary (inspired by JARVIS):
+
+| Gesture ID | Gesture Name | Physical Hand Kinematics | Visual Feedback | System Action |
+| :--- | :--- | :--- | :--- | :--- |
+| **`GEST-001`** | **Point & Raycast** | Index finger fully extended, remaining 3 fingers curled into palm, wrist angled toward screen. | `UI-021` Cyan Reticle appears and tracks index vector; snaps to nearest Wayland surface. | Resolves deictic pronoun target (*"this"*, *"that"*); focuses surface. |
+| **`GEST-002`** | **Pinch & Drag** | Thumb tip and index tip touch ($<1.5\,\text{cm}$ separation) while moving hand laterally or vertically. | Reticle contracts to an illuminated diamond; targeted card/window attaches to pointer. | Spatial move/drag for windows, Agent Cards (`UI-005`), or panning Task DAGs (`UI-006`). |
+| **`GEST-003`** | **Open Palm (Hold / Stop)** | All 5 fingers extended flat, palm normal vector pointing directly at camera aperture. | `UI-001` Orb flashes amber-gold ring; screen emits subtle ambient edge pulse. | **Instant Emergency Pause**: Mutes neural TTS audio and halts active agent tool execution. |
+| **`GEST-004`** | **Swipe Wave** | Flat hand or fist sweeps horizontally ($V_x > 1.2\,\text{m/s}$) from left-to-right or right-to-left. | Particle trailing effect in direction of sweep; cards slide smoothly with momentum. | Flips between active agent monitor tabs or dismisses Notification Toasts (`UI-010`). |
+| **`GEST-005`** | **In-Air Push / Tap** | Extended index finger executes rapid forward impulse ($\Delta Z < -4\,\text{cm}$) along pointing vector. | Reticle expands into a concentric ripple ring with tactile audio click. | Spatial button click; authorizes interactive confirmation on Permission Dialog (`UI-007`). |
+| **`GEST-006`** | **Two-Hand Frame** | Both hands active; index fingers and thumbs form a rectangular aperture framing screen region. | Glowing rectangular bounding box highlights the enclosed screen area. | Triggers visual inspection tool: *"Aura, explain what is inside this frame."* |
+| **`GEST-007`** | **Two-Hand Zoom** | Both hands in pinch position, moving apart (zoom in) or together (zoom out). | Radial expansion/contraction grid overlay on Task Graph. | Zooms in/out on complex multi-agent Task DAGs (`UI-006`). |
+
+---
+
+## 8. Cross-Document Navigation
 
 - Public introduction & Vision: [README.md](file:///Users/aryansingh/Documents/Aura-OS/README.md)
-- Complete technical architecture: [ARCHITECTURE.md](file:///Users/aryansingh/Documents/Aura-OS/ARCHITECTURE.md)
-- Phased implementation plan: [PLAN.md](file:///Users/aryansingh/Documents/Aura-OS/PLAN.md)
-- Live project state machine & Task registry: [PROGRESS-TRACKER.md](file:///Users/aryansingh/Documents/Aura-OS/PROGRESS-TRACKER.md)
+- Complete technical architecture: [ARCHITECTURE.md](file:///Users/aryansingh/Documents/Aura-OS/context/ARCHITECTURE.md)
+- Phased implementation plan: [PLAN.md](file:///Users/aryansingh/Documents/Aura-OS/context/PLAN.md)
+- Live project state machine & Task registry: [PROGRESS-TRACKER.md](file:///Users/aryansingh/Documents/Aura-OS/context/PROGRESS-TRACKER.md)

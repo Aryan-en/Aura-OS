@@ -38,6 +38,7 @@
 | :--- | :---: | :---: | :---: | :--- |
 | **Linux Foundation & Daemons** | `SYS` | 🟡 In Progress | 25% | Debian 12 / systemd / Python 3.12 |
 | **Voice Subsystem** | `VOICE` | 🔵 Planned | 0% | PipeWire / openWakeWord / faster-whisper |
+| **Vision & Gesture Subsystem** | `VIS` | 🔵 Planned | 0% | PipeWire / MediaPipe / ONNX |
 | **Agent Runtime** | `AGENT` | 🔵 Planned | 0% | Asyncio / Pydantic / Task DAG |
 | **Unified Memory Engine** | `MEM` | 🔵 Planned | 0% | SQLite 3 / sqlite-vec |
 | **Context Engine** | `CTX` | 🔵 Planned | 0% | Wayland toplevel / wl-clipboard |
@@ -106,7 +107,20 @@
 | `VOICE-009` | Optimize whisper and Piper models with ARM NEON SIMD | 🔵 Planned | P2 | `VOICE-005` | Benchmark on Apple Silicon |
 | `VOICE-010` | Acoustic Echo Cancellation (AEC) filter configuration | 🔵 Planned | P2 | `VOICE-001` | Prevents self-triggering |
 
-### 3. Agent Runtime & Scheduling (`AGENT`)
+### 3. Vision & Hand Gesture Subsystem (`VIS`)
+
+| Task ID | Description | Status | Priority | Dependencies | Notes |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| `VIS-001` | Implement PipeWire & V4L2 asynchronous camera capture loop | 🔵 Planned | P0 | `SYS-006` | 720p @ 30–60 FPS |
+| `VIS-002` | Integrate quantized 21-point hand landmark pose estimator | 🔵 Planned | P0 | `VIS-001` | MediaPipe / ONNX ARM64 NEON |
+| `VIS-003` | Implement kinematic gesture classifier (Point, Pinch, Pause, Push) | 🔵 Planned | P0 | `VIS-002` | Emits discrete gesture events |
+| `VIS-004` | Build 3D-to-2D screen coordinate raycasting engine with 1-Euro filter | 🔵 Planned | P1 | `VIS-003` | Jitter-free spatial reticle |
+| `VIS-005` | Implement Multimodal Fusion Engine (`aura-fusion`) for deictic binding | 🔵 Planned | P0 | `VIS-004`, `VOICE-005` | Resolves "Aura, fix that" |
+| `VIS-006` | Implement in-air push gesture authorization for Permission Dialog | 🔵 Planned | P0 | `VIS-003`, `SEC-001` | Confirms `UI-007` |
+| `VIS-007` | Enforce zero-retention raw video frame memory policy | 🔵 Planned | P0 | `VIS-001` | Overwrites RAM ring buffer |
+| `VIS-008` | Build dynamic camera framerate throttler (10 FPS idle $\to$ 60 FPS active) | 🔵 Planned | P2 | `VIS-001` | Reduces battery & CPU drain |
+
+### 4. Agent Runtime & Scheduling (`AGENT`)
 
 | Task ID | Description | Status | Priority | Dependencies | Notes |
 | :--- | :--- | :---: | :---: | :---: | :--- |
@@ -246,6 +260,9 @@
 | **Wake-Word Latency** | < 150ms | Untested | ⚪ Baseline |
 | **STT Time-to-First-Token** | < 300ms | Untested | ⚪ Baseline |
 | **Intent Parsing Latency** | < 400ms | Untested | ⚪ Baseline |
+| **Hand Tracking Inference Rate** | >= 30 FPS | Untested | ⚪ Baseline |
+| **Gesture Recognition Latency** | < 25ms | Untested | ⚪ Baseline |
+| **Raycast Target Resolution** | < 15ms | Untested | ⚪ Baseline |
 | **TTS First Audio Chunk** | < 200ms | Untested | ⚪ Baseline |
 | **Total End-to-End Voice Turnaround** | < 1200ms | Untested | ⚪ Baseline |
 | **Idle System CPU Usage (All Daemons)**| < 2.5% | Untested | ⚪ Baseline |
@@ -262,11 +279,12 @@
 | **M2: Agent Runtime** | `v0.2.0-alpha` | 10 | 0 | 0% | 2026-12-31 |
 | **M3: Memory Engine** | `v0.3.0-alpha` | 8 | 0 | 0% | 2027-02-15 |
 | **M4: Context Engine** | `v0.4.0-alpha` | 8 | 0 | 0% | 2027-03-31 |
-| **M5: Multi-Agent System**| `v0.5.0-beta` | 10 | 0 | 0% | 2027-05-15 |
-| **M6: Native Desktop** | `v0.6.0-beta` | 10 | 0 | 0% | 2027-06-30 |
-| **M7: OS Integration** | `v0.7.0-beta` | 8 | 0 | 0% | 2027-08-15 |
-| **M8: Security Sandbox** | `v0.8.0-rc` | 8 | 0 | 0% | 2027-09-30 |
-| **M9: Local AI** | `v0.9.0-rc` | 6 | 0 | 0% | 2027-11-15 |
+| **M4.5: Vision & Gestures** | `v0.4.5-alpha` | 8 | 0 | 0% | 2027-04-30 |
+| **M5: Multi-Agent System**| `v0.5.0-beta` | 10 | 0 | 0% | 2027-05-31 |
+| **M6: Native Desktop** | `v0.6.0-beta` | 10 | 0 | 0% | 2027-07-15 |
+| **M7: OS Integration** | `v0.7.0-beta` | 8 | 0 | 0% | 2027-08-31 |
+| **M8: Security Sandbox** | `v0.8.0-rc` | 8 | 0 | 0% | 2027-10-15 |
+| **M9: Local AI** | `v0.9.0-rc` | 6 | 0 | 0% | 2027-11-30 |
 | **M10: Distribution ISO** | `v1.0.0` | 6 | 0 | 0% | 2027-12-31 |
 
 ---
@@ -289,10 +307,11 @@
 | Date | Author | Task ID | Summary of Changes |
 | :--- | :--- | :--- | :--- |
 | 2026-09-21 | AI Architect | `SYS-001` | Initialized repository structure and directory hierarchy. |
-| 2026-09-21 | AI Architect | `SYS-002` | Created authoritative technical specification ([ARCHITECTURE.md](file:///Users/aryansingh/Documents/Aura-OS/ARCHITECTURE.md)). |
-| 2026-09-21 | AI Architect | `SYS-003` | Created 11-phase implementation plan ([PLAN.md](file:///Users/aryansingh/Documents/Aura-OS/PLAN.md)). |
-| 2026-09-21 | AI Architect | `SYS-004` | Created canonical UI component registry ([UI-REGISTRY.md](file:///Users/aryansingh/Documents/Aura-OS/UI-REGISTRY.md)). |
-| 2026-09-21 | AI Architect | `SYS-000` | Established live progress tracking system ([PROGRESS-TRACKER.md](file:///Users/aryansingh/Documents/Aura-OS/PROGRESS-TRACKER.md)). |
+| 2026-09-21 | AI Architect | `SYS-002` | Created authoritative technical specification ([ARCHITECTURE.md](file:///Users/aryansingh/Documents/Aura-OS/context/ARCHITECTURE.md)). |
+| 2026-09-21 | AI Architect | `SYS-003` | Created 11-phase implementation plan ([PLAN.md](file:///Users/aryansingh/Documents/Aura-OS/context/PLAN.md)). |
+| 2026-09-21 | AI Architect | `SYS-004` | Created canonical UI component registry ([UI-REGISTRY.md](file:///Users/aryansingh/Documents/Aura-OS/context/UI-REGISTRY.md)). |
+| 2026-09-21 | AI Architect | `SYS-000` | Established live progress tracking system ([PROGRESS-TRACKER.md](file:///Users/aryansingh/Documents/Aura-OS/context/PROGRESS-TRACKER.md)). |
+| 2026-09-21 | AI Architect | `VIS-000` | Architected Jarvis-like camera hand gesture control (`VIS-001` - `VIS-008`), raycaster, and multimodal spatial fusion. |
 
 ---
 

@@ -11,29 +11,31 @@
 4. [System Boot Sequence](#4-system-boot-sequence)
 5. [Core Daemon: `aurad`](#5-core-daemon-aurad)
 6. [Voice Subsystem](#6-voice-subsystem)
-7. [Context Engine](#7-context-engine)
-8. [Agent Runtime & Process Model](#8-agent-runtime--process-model)
-9. [Task Model & DAG Scheduler](#9-task-model--dag-scheduler)
-10. [Planner & Replanning Engine](#10-planner--replanning-engine)
-11. [Supervisor & Agent Factory](#11-supervisor--agent-factory)
-12. [Tool & Skill Registry (and MCP Integration)](#12-tool--skill-registry-and-mcp-integration)
-13. [Permission Engine](#13-permission-engine)
-14. [Memory Architecture (Working, Episodic, Semantic, Procedural)](#14-memory-architecture)
-15. [Model Router & LLM Gateway](#15-model-router--llm-gateway)
-16. [Verification & Critic System](#16-verification--critic-system)
-17. [Native Desktop Shell Architecture](#17-native-desktop-shell-architecture)
-18. [IPC & D-Bus Specifications](#18-ipc--d-bus-specifications)
-19. [Storage Layout & Data Schemas](#19-storage-layout--data-schemas)
-20. [Observability, Logging & Tracing](#20-observability-logging--tracing)
-21. [Sandboxing & Process Isolation](#21-sandboxing--process-isolation)
-22. [Threat Model & Security Hardening](#22-threat-model--security-hardening)
-23. [Failure Recovery & Resiliency](#23-failure-recovery--resiliency)
-24. [Offline vs Cloud Operation](#24-offline-vs-cloud-operation)
-25. [Networking & Egress Controls](#25-networking--egress-controls)
-26. [Update Architecture](#26-update-architecture)
-27. [ARM64 & x86_64 Hardware Considerations](#27-arm64--x86_64-hardware-considerations)
-28. [V0 Implementation vs Long-Term Architecture](#28-v0-implementation-vs-long-term-architecture)
-29. [Formal Entity Specifications](#29-formal-entity-specifications)
+7. [Vision & Hand Gesture Subsystem](#7-vision--hand-gesture-subsystem)
+8. [Multimodal Fusion Engine](#8-multimodal-fusion-engine)
+9. [Context Engine](#9-context-engine)
+10. [Agent Runtime & Process Model](#10-agent-runtime--process-model)
+11. [Task Model & DAG Scheduler](#11-task-model--dag-scheduler)
+12. [Planner & Replanning Engine](#12-planner--replanning-engine)
+13. [Supervisor & Agent Factory](#13-supervisor--agent-factory)
+14. [Tool & Skill Registry (and MCP Integration)](#14-tool--skill-registry-and-mcp-integration)
+15. [Permission Engine](#15-permission-engine)
+16. [Memory Architecture (Working, Episodic, Semantic, Procedural)](#16-memory-architecture)
+17. [Model Router & LLM Gateway](#17-model-router--llm-gateway)
+18. [Verification & Critic System](#18-verification--critic-system)
+19. [Native Desktop Shell Architecture](#19-native-desktop-shell-architecture)
+20. [IPC & D-Bus Specifications](#20-ipc--d-bus-specifications)
+21. [Storage Layout & Data Schemas](#21-storage-layout--data-schemas)
+22. [Observability, Logging & Tracing](#22-observability-logging--tracing)
+23. [Sandboxing & Process Isolation](#23-sandboxing--process-isolation)
+24. [Threat Model & Security Hardening](#24-threat-model--security-hardening)
+25. [Failure Recovery & Resiliency](#25-failure-recovery--resiliency)
+26. [Offline vs Cloud Operation](#26-offline-vs-cloud-operation)
+27. [Networking & Egress Controls](#27-networking--egress-controls)
+28. [Update Architecture](#28-update-architecture)
+29. [ARM64 & x86_64 Hardware Considerations](#29-arm64--x86_64-hardware-considerations)
+30. [V0 Implementation vs Long-Term Architecture](#30-v0-implementation-vs-long-term-architecture)
+31. [Formal Entity Specifications](#31-formal-entity-specifications)
 
 ---
 
@@ -75,6 +77,7 @@ graph TD
     subgraph L10["Layer 10: Ambient Native Desktop (Wayland / GTK4 / Rust)"]
         Orb["UI-001 Aura Orb"]
         Overlay["UI-002 Voice Overlay"]
+        Reticle["UI-021 Spatial Reticle"]
         Monitor["UI-004 Agent Monitor"]
         PermDialog["UI-007 Permission Dialog"]
     end
@@ -112,19 +115,27 @@ graph TD
         Critic["Verification & Critic Engine"]
     end
 
-    subgraph L4["Layer 4: Intelligence & Planning"]
+    subgraph L4["Layer 4: Intelligence, Planning & Multimodal Fusion"]
+        FusionEngine["Multimodal Fusion Engine"]
         ModelRouter["Model Router"]
         GoalParser["Goal Interpreter"]
         Planner["Hierarchical Planner"]
         Replanner["Replanning Engine"]
     end
 
-    subgraph L3["Layer 3: Voice Subsystem"]
-        PW["PipeWire Node Graph"]
-        Wake["openWakeWord Engine"]
-        VAD["WebRTC VAD"]
-        STT["faster-whisper Engine"]
-        TTS["Piper Neural TTS"]
+    subgraph L3["Layer 3: Sensory Subsystems (Voice & Vision)"]
+        subgraph Voice["Voice Pipeline"]
+            PW_Audio["PipeWire Audio Loopback"]
+            Wake["openWakeWord Engine"]
+            VAD["WebRTC VAD"]
+            STT["faster-whisper Engine"]
+            TTS["Piper Neural TTS"]
+        end
+        subgraph Vision["Vision Pipeline"]
+            Cam["PipeWire / V4L2 Camera"]
+            Pose["MediaPipe / ONNX 21-pt Hand Tracker"]
+            Gest["Gesture Classifier & Raycaster"]
+        end
     end
 
     subgraph L2["Layer 2: AURA Core Services (aurad)"]
@@ -136,7 +147,7 @@ graph TD
     subgraph L1["Layer 1: Linux Foundation"]
         LinuxKernel["Linux Kernel 6.6+ (ARM64)"]
         Systemd["systemd (init, cgroups v2, journald)"]
-        PipeWireCore["PipeWire Audio Server"]
+        PipeWireCore["PipeWire Audio & Video Server"]
         WaylandCore["Wayland Compositor"]
     end
 
@@ -159,7 +170,7 @@ graph TD
 
 ## 4. System Boot Sequence
 
-The transition from firmware to an active, voice-ready AURA session follows a deterministic initialization sequence:
+The transition from firmware to an active, voice- and gesture-ready AURA session follows a deterministic initialization sequence:
 
 ```mermaid
 sequenceDiagram
@@ -168,25 +179,30 @@ sequenceDiagram
     participant Firmware as UEFI / Bootloader
     participant Kernel as Linux Kernel (ARM64)
     participant Init as systemd (PID 1)
-    participant Audio as PipeWire & WirePlumber
+    participant AudioVideo as PipeWire & WirePlumber
     participant Display as Wayland Compositor
     participant Core as aurad (Aura Daemon)
     participant Voice as Voice Service
+    participant Vision as Vision Service
     participant Shell as Aura Shell (Wayland/GTK4)
 
     Firmware->>Kernel: Load kernel image & initramfs
     Kernel->>Init: Initialize kernel space, mount rootfs
     Init->>Init: Apply cgroups v2, start basic services
-    Init->>Audio: Start PipeWire.service & WirePlumber
+    Init->>AudioVideo: Start PipeWire.service & WirePlumber (Audio + Video)
     Init->>Display: Start Wayland Compositor session
     Init->>Core: Start aura-core.target -> aurad.service
     Core->>Core: Initialize SQLite databases & IPC endpoints
     Core->>Voice: Spawn Voice Service worker
-    Voice->>Audio: Bind audio capture stream (PipeWire loopback)
+    Voice->>AudioVideo: Bind audio capture stream (PipeWire loopback)
     Voice->>Voice: Load wake-word & VAD models into memory
+    Core->>Vision: Spawn Vision Service worker
+    Vision->>AudioVideo: Bind camera device node (/dev/video0 via PipeWire)
+    Vision->>Vision: Load quantized 21-pt hand pose ONNX model
     Core->>Shell: Launch aura-shell.service
     Shell->>Display: Register Wayland layer-shell surfaces
     Voice-->>Shell: Signal Voice Ready (D-Bus: org.auraos.Voice.Ready)
+    Vision-->>Shell: Signal Vision Ready (D-Bus: org.auraos.Vision.Ready)
     Shell->>Shell: Transition Aura Orb to IDLE (Ambient Breathing)
     Shell-->>User: Subaudible / Visual "System Ready" pulse
 ```
@@ -194,10 +210,10 @@ sequenceDiagram
 1. **UEFI / Bootloader**: Bootstraps the ARM64 kernel with hardware device trees.
 2. **Linux Kernel**: Initializes CPU clusters, memory controllers, VirtIO subsystems (under UTM), and security modules.
 3. **systemd (PID 1)**: Brings up system slices, mounts virtual filesystems, and transitions to the graphical target.
-4. **PipeWire & WirePlumber**: Establishes the real-time audio routing graph, configuring ALSA/VirtIO sound devices with zero-latency buffers.
+4. **PipeWire & WirePlumber**: Establishes real-time audio and camera media graphs, configuring ALSA/VirtIO sound devices and V4L2 camera nodes.
 5. **`aurad`**: Launches the core orchestration daemon under the user session slice (`app.slice/aura-core.service`). Initializes local databases, validates configuration files, and exposes D-Bus endpoints.
-6. **Voice Service**: Loads lightweight openWakeWord and VAD models into RAM; attaches to the PipeWire input stream.
-7. **`aura-shell`**: Launches the native Wayland desktop interface, binding the ambient Voice Orb (`UI-001`) to the layer-shell overlay.
+6. **Sensory Services (Voice & Vision)**: Loads openWakeWord, VAD, and 21-point hand landmark ONNX models into RAM; binds to PipeWire audio capture and camera video devices.
+7. **`aura-shell`**: Launches the native Wayland desktop interface, binding the ambient Voice Orb (`UI-001`) and Spatial Reticle (`UI-021`) to the layer-shell overlay.
 
 ---
 
@@ -250,11 +266,86 @@ graph LR
 3. **Wake-Word Detection**: Runs `openWakeWord` against a custom-trained model for the activation phrase *"Aura"*. Operates with <1% single-core CPU overhead on ARM64.
 4. **Streaming Speech-to-Text (STT)**: Employs `faster-whisper` (CTranslate2) utilizing 8-bit quantized models (`small.en` or `base.en`). Audio preceding the wake word by 200ms is preserved in a circular ring buffer to prevent clipping the first syllable.
 5. **Text-to-Speech (TTS)**: Employs `Piper TTS` for instant, natural speech generation. Audio chunks stream directly into PipeWire buffers, enabling sub-200ms time-to-first-audio.
-6. **Barge-in / Interruption Support**: When TTS is actively speaking and the user speaks, VAD triggers an immediate `AUDIO_INTERRUPT` event over D-Bus, instantly zeroing PipeWire output buffers and transitioning state back to `LISTENING`.
+6. **Barge-in / Interruption Support**: When TTS is actively speaking and the user speaks (or raises an open palm via Vision `GESTURE_PAUSE`), the system triggers an immediate `AUDIO_INTERRUPT` event over D-Bus, instantly zeroing PipeWire output buffers and transitioning state back to `LISTENING`.
 
 ---
 
-## 7. Context Engine
+## 7. Vision & Hand Gesture Subsystem
+
+The Vision Subsystem equips AURA with ambient spatial awareness and real-time hand gesture tracking inspired by JARVIS, operating entirely on-device without cloud video streaming.
+
+```mermaid
+graph LR
+    Cam[Camera /dev/video0] --> PW[PipeWire Video Source]
+    PW --> FrameBuffer[Volatile Ring Buffer]
+    FrameBuffer --> Model[MediaPipe / ONNX 21-pt Hand Pose]
+    Model --> Keypoints[21 3D Coordinates x,y,z]
+    Keypoints --> Classifier[Gesture Classifier]
+    Keypoints --> Raycaster[3D Screen Raycaster]
+    Classifier --> GestEvents[D-Bus: org.auraos.Vision]
+    Raycaster --> ScreenTarget[Screen Target Coordinates]
+```
+
+### 7.1 Camera Ingestion & Zero-Retention Memory
+- **Ingestion Pipeline**: Attaches to `/dev/video0` or PipeWire Camera Portal at 1280x720 @ 30–60 FPS.
+- **Privacy Architecture**: Raw frames exist strictly within a volatile, non-swappable in-memory ring buffer (depth: 2 frames). Once the 21 keypoints are extracted, the video frame is zeroed out and overwritten. Raw images are never persisted to disk or emitted over IPC.
+- **Hardware Indicator**: Camera streaming is tied directly to system LED indicators and can be physically or programmatically toggled via `UI-015`.
+
+### 7.2 21-Point Hand Pose Tracking & Kinematics
+Uses a quantized lightweight ONNX model (MediaPipe Hands architecture) compiled for ARM64 NEON SIMD, extracting 21 $(x, y, z)$ coordinates per hand in <12ms:
+1. **Wrist** (Keypoint 0)
+2. **Thumb** (Keypoints 1–4: CMC, MCP, IP, TIP)
+3. **Index** (Keypoints 5–8: MCP, PIP, DIP, TIP)
+4. **Middle** (Keypoints 9–12: MCP, PIP, DIP, TIP)
+5. **Ring** (Keypoints 13–16: MCP, PIP, DIP, TIP)
+6. **Pinky** (Keypoints 17–20: MCP, PIP, DIP, TIP)
+
+### 7.3 Gesture State Classification & Raycasting
+The classifier evaluates geometric angles, inter-joint Euclidean distances, and temporal velocity vectors to emit discrete spatial events:
+
+| Gesture Name | Kinematic Criteria | Emitted Event | System Action |
+| :--- | :--- | :--- | :--- |
+| **Pointing / Raycast** | Index extended ($\Delta_{5\to 8} > 0.8$), other 3 fingers curled | `GESTURE_POINT` | Projects ray from Wrist $\to$ Index Tip to desktop surface $(X_s, Y_s)$. Activates `UI-021` reticle. |
+| **Pinch & Drag** | Euclidean distance $\|\text{Thumb}_{\text{TIP}} - \text{Index}_{\text{TIP}}\| < \epsilon$ | `GESTURE_PINCH` | Grabs targeted Wayland window, Agent Card (`UI-005`), or task graph node for spatial manipulation. |
+| **Open Palm / Hold** | All 5 fingers fully extended, palm normal pointing towards camera | `GESTURE_PAUSE` | **Instant Emergency Pause**: Mutes TTS audio and suspends running tool execution. |
+| **Swipe Wave** | Open palm or fist with lateral velocity $V_x > 1.2\,\text{m/s}$ | `GESTURE_SWIPE` | Cycles agent monitor tabs, flips through task steps, or dismisses notifications (`UI-010`). |
+| **In-Air Push / Tap** | Z-axis impulse along index pointing vector ($\frac{\partial Z}{\partial t} < -\theta$) | `GESTURE_PUSH` | Triggers a spatial click; confirms interactive permission dialogs (`UI-007`). |
+| **Two-Hand Frame** | Both hands active, thumb-index forming rectangle framing screen area | `GESTURE_FRAME` | Captures bounding box region for multimodal inspection ("Explain what's in this box"). |
+
+### 7.4 3D-to-2D Screen Coordinate Raycasting
+The raycaster models the camera as a pinhole projection matrix calibrated during the First Boot Experience (`UI-020`).
+- Given 3D vector $\vec{v} = \mathbf{P}_{\text{IndexTip}} - \mathbf{P}_{\text{IndexMCP}}$, the intersection with the estimated screen plane $Z = Z_{\text{display}}$ yields target desktop coordinates $(X_s, Y_s)$.
+- A 1-Euro smoothing filter eliminates jitter while maintaining low latency (<15ms response).
+
+---
+
+## 8. Multimodal Fusion Engine
+
+The Multimodal Fusion Engine (`aura-fusion`) unifies voice and vision inputs into coherent, deictically grounded system goals.
+
+```mermaid
+graph TD
+    VoiceStream[Voice STT: 'Aura, fix that error'] --> TimeSync[Temporal Alignment Window - 400ms]
+    VisionStream[Vision: GESTURE_POINT at Window 2] --> TimeSync
+    ContextStream[Wayland Window 2: Terminal exit code 1] --> Fusion[Deictic Disambiguation Matrix]
+    TimeSync --> Fusion
+    Fusion --> SynthesizedGoal["Synthesized Goal: 'Fix IndexError in active terminal window 2'"]
+    SynthesizedGoal --> Planner[Planner & Agent Runtime]
+```
+
+### 8.1 Temporal Coincidence Binding
+Human speech and gesture are inherently asynchronous (pointing typically precedes the spoken demonstrative pronoun by 100–300ms).
+- AURA maintains a **400ms sliding coincidence buffer**.
+- When an acoustic token like *"this"*, *"that"*, *"there"*, or *"here"* is parsed, the engine queries the spatial raycaster for pointing intersections within $[T_{\text{word}} - 400\text{ms}, T_{\text{word}} + 200\text{ms}]$.
+
+### 8.2 Deictic Spatial Resolution
+1. Pointing ray $(X_s, Y_s)$ is cross-referenced with Wayland compositor surface geometries (`wlr-foreign-toplevel-management`).
+2. The targeted window, code line, or UI component is resolved as the primary subject of the prompt.
+3. If no gesture is active, the engine falls back to standard keyboard/window focus heuristics (Section 9).
+
+---
+
+## 9. Context Engine
 
 The Context Engine continuously aggregates OS telemetry to provide grounding for natural language commands like:
 > *"Aura, fix this."*
@@ -592,6 +683,18 @@ Subsystems communicate using standard Linux IPC mechanisms: **D-Bus** for struct
 - **Signals**:
   - `PermissionPrompt(s request_id, s agent_id, s tool_name, s summary)`
 
+#### 5. `org.auraos.Vision`
+- **Path**: `/org/auraos/Vision`
+- **Methods**:
+  - `StartTracking() -> (b)`
+  - `StopTracking() -> (b)`
+  - `GetTrackingState() -> (s)` (`INACTIVE`, `TRACKING_ONE_HAND`, `TRACKING_TWO_HANDS`)
+  - `CalibrateRaycaster() -> (b)`
+- **Signals**:
+  - `GestureDetected(s gesture_type, f confidence, a{sv} metadata)`
+  - `HandPoseUpdated(a(ddd) landmarks_3d, (dd) raycast_screen_coords)`
+  - `TrackingLost()`
+
 ---
 
 ## 19. Storage Layout & Data Schemas
@@ -837,11 +940,83 @@ Below are the normative data schemas governing AURA entities (represented in Pyd
 }
 ```
 
+### 29.4 HandLandmarks Entity
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandLandmarks",
+  "type": "object",
+  "properties": {
+    "timestamp_ns": { "type": "integer" },
+    "hand_index": { "type": "integer", "enum": [0, 1] },
+    "handedness": { "type": "string", "enum": ["LEFT", "RIGHT"] },
+    "landmarks_3d": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "minimum": 0, "maximum": 20 },
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "z": { "type": "number" }
+        },
+        "required": ["id", "x", "y", "z"]
+      },
+      "minItems": 21,
+      "maxItems": 21
+    },
+    "raycast_screen_coords": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "target_window_id": { "type": ["string", "null"] }
+      },
+      "required": ["x", "y"]
+    }
+  },
+  "required": ["timestamp_ns", "handedness", "landmarks_3d"]
+}
+```
+
+### 29.5 GestureEvent Entity
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GestureEvent",
+  "type": "object",
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "timestamp_ns": { "type": "integer" },
+    "gesture_type": { 
+      "type": "string", 
+      "enum": ["GESTURE_POINT", "GESTURE_PINCH", "GESTURE_PAUSE", "GESTURE_SWIPE", "GESTURE_PUSH", "GESTURE_FRAME"] 
+    },
+    "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+    "raycast_screen_target": {
+      "type": ["object", "null"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "target_window_id": { "type": ["string", "null"] }
+      }
+    },
+    "velocity_vector": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  },
+  "required": ["event_id", "timestamp_ns", "gesture_type", "confidence"]
+}
+```
+
 ---
 
 ## 30. Cross-Document Navigation
 
 - High-level overview & Quickstart: [README.md](file:///Users/aryansingh/Documents/Aura-OS/README.md)
-- Engineering implementation roadmap: [PLAN.md](file:///Users/aryansingh/Documents/Aura-OS/PLAN.md)
-- Live project state & Task registry: [PROGRESS-TRACKER.md](file:///Users/aryansingh/Documents/Aura-OS/PROGRESS-TRACKER.md)
-- UI components, screens & voice states: [UI-REGISTRY.md](file:///Users/aryansingh/Documents/Aura-OS/UI-REGISTRY.md)
+- Engineering implementation roadmap: [PLAN.md](file:///Users/aryansingh/Documents/Aura-OS/context/PLAN.md)
+- Live project state & Task registry: [PROGRESS-TRACKER.md](file:///Users/aryansingh/Documents/Aura-OS/context/PROGRESS-TRACKER.md)
+- UI components, screens & voice states: [UI-REGISTRY.md](file:///Users/aryansingh/Documents/Aura-OS/context/UI-REGISTRY.md)

@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This document translates the authoritative technical architecture defined in [ARCHITECTURE.md](file:///Users/aryansingh/Documents/Aura-OS/ARCHITECTURE.md) into a phased, chronological engineering roadmap. It establishes strict acceptance gates, automated test requirements, risk mitigations, and demo scenarios for each phase of AURA OS development.
+This document translates the authoritative technical architecture defined in [ARCHITECTURE.md](file:///Users/aryansingh/Documents/Aura-OS/context/ARCHITECTURE.md) into a phased, chronological engineering roadmap. It establishes strict acceptance gates, automated test requirements, risk mitigations, and demo scenarios for each phase of AURA OS development.
 
 ---
 
@@ -23,14 +23,15 @@ gantt
     Phase 2: Agent Runtime & Tasks (M2)      :         p2, 2026-11-16, 2026-12-31
     Phase 3: Unified Memory Engine (M3)      :         p3, 2027-01-01, 2027-02-15
     Phase 4: Context Engine & Grounding (M4) :         p4, 2027-02-16, 2027-03-31
-    Phase 5: Multi-Agent Supervision (M5)    :         p5, 2027-04-01, 2027-05-15
+    Phase 4B: Vision & Spatial Gestures (M4.5):        p4b, 2027-04-01, 2027-04-30
+    Phase 5: Multi-Agent Supervision (M5)    :         p5, 2027-05-01, 2027-05-31
     section Native Environment
-    Phase 6: Native Wayland Shell (M6)       :         p6, 2027-05-16, 2027-06-30
-    Phase 7: Advanced OS Integration (M7)    :         p7, 2027-07-01, 2027-08-15
-    Phase 8: Security & Sandboxing (M8)      :         p8, 2027-08-16, 2027-09-30
+    Phase 6: Native Wayland Shell (M6)       :         p6, 2027-06-01, 2027-07-15
+    Phase 7: Advanced OS Integration (M7)    :         p7, 2027-07-16, 2027-08-31
+    Phase 8: Security & Sandboxing (M8)      :         p8, 2027-09-01, 2027-10-15
     section Hardening & Distribution
-    Phase 9: 100% Local AI Offline (M9)      :         p9, 2027-10-01, 2027-11-15
-    Phase 10: Distributable ISO & Images (M10):        p10, 2027-11-16, 2027-12-31
+    Phase 9: 100% Local AI Offline (M9)      :         p9, 2027-10-16, 2027-11-30
+    Phase 10: Distributable ISO & Images (M10):        p10, 2027-12-01, 2027-12-31
 ```
 
 | Milestone | Target Version | Phase Title | Primary Focus |
@@ -40,6 +41,7 @@ gantt
 | **M2** | `v0.2.0-alpha` | **Phase 2: Agent Runtime** | Single-agent autonomous loops, Task DAGs, Tool Registry |
 | **M3** | `v0.3.0-alpha` | **Phase 3: Memory Engine** | SQLite episodic journal + `sqlite-vec` semantic memory |
 | **M4** | `v0.4.0-alpha` | **Phase 4: Context Engine** | Wayland window tracking, active app, clipboard, "fix this" |
+| **M4.5**| `v0.4.5-alpha` | **Phase 4B: Vision & Spatial Gestures**| 21-pt hand pose tracking, raycast reticle, multimodal fusion |
 | **M5** | `v0.5.0-beta` | **Phase 5: Multi-Agent System**| Parent-child agent spawning, parallel tasks, supervisor, critic |
 | **M6** | `v0.6.0-beta` | **Phase 6: Native Desktop** | Rust/GTK4 Wayland overlay, Aura Orb (`UI-001`), Voice Overlay |
 | **M7** | `v0.7.0-beta` | **Phase 7: OS Integration** | D-Bus system bus, notification center, systemd service control |
@@ -218,6 +220,43 @@ User runs a failing Python script in a terminal. Without copying anything, user 
 #### Risks & Mitigations
 - *Risk*: Inadvertently capturing sensitive passwords from clipboard.
 - *Mitigation*: Ignore clipboard buffers with MIME types indicating password managers (`x-kde-passwordManagerHint`).
+
+---
+
+### PHASE 4B — Vision & Spatial Gesture Engine
+- **Milestone**: `M4.5` (`v0.4.5-alpha`)
+- **Objective**: Implement camera-based real-time 3D hand tracking, canonical gesture recognition, and multimodal fusion to enable Jarvis-like spatial control.
+
+#### Deliverables
+1. PipeWire & V4L2 camera capture loop in Python (`aura/vision/camera.py`).
+2. Quantized ONNX 21-point hand landmark pose estimator (`aura/vision/hand_tracker.py`).
+3. Kinematic gesture classification engine (`GESTURE_POINT`, `GESTURE_PINCH`, `GESTURE_PAUSE`, `GESTURE_SWIPE`, `GESTURE_PUSH`, `GESTURE_FRAME`).
+4. 3D-to-2D screen coordinate raycasting engine with 1-Euro jitter smoothing filter.
+5. Multimodal Fusion Engine (`aura-fusion`) temporally synchronizing speech tokens and pointing vectors.
+6. Spatial Reticle overlay component (`UI-021`) integrated with `aura-shell`.
+
+#### Dependencies
+- Phase 1 Voice MVP.
+- Phase 4 Context Engine.
+- V4L2 kernel device `/dev/video0` or PipeWire camera portal.
+
+#### Definition of Done (DoD)
+- [ ] Real-time hand landmark inference runs at $\ge 30\,\text{FPS}$ with $<8\%$ single-core CPU usage on ARM64.
+- [ ] Raising an open palm triggers `GESTURE_PAUSE` within 50ms, halting TTS playback and tool execution.
+- [ ] Pointing at a window and saying *"Aura, focus this"* correctly activates that Wayland surface.
+- [ ] In-air push gesture reliably selects and authorizes the Permission Dialog (`UI-007`).
+- [ ] Zero video frame retention verified: raw pixel buffers are overwritten in-memory and never written to disk.
+
+#### Tests
+- **Automated**: Mock landmark stream test feeding synthetic 3D coordinates into `GestureClassifier` and verifying event classification accuracy.
+- **Manual**: Run interactive webcam tracking script inside UTM; verify hand skeleton overlay and raycast accuracy.
+
+#### Demo Scenario
+Developer points an index finger at a terminal running failing tests and verbally says: *"Aura, fix that error."* The system draws a subtle cyan reticle around the targeted terminal, parses the error, and begins autonomous repair.
+
+#### Risks & Mitigations
+- *Risk*: Continuous camera inference draining battery / CPU when user is idle.
+- *Mitigation*: Dynamically drop camera capture to 10 FPS when no hand is in frame, ramping back to 60 FPS within 1 frame of hand detection.
 
 ---
 
@@ -427,6 +466,6 @@ Non-critical paths that can proceed in parallel once Phase 2 is complete:
 ## Cross-Document References
 
 - High-level vision & features: [README.md](file:///Users/aryansingh/Documents/Aura-OS/README.md)
-- Deep technical architecture: [ARCHITECTURE.md](file:///Users/aryansingh/Documents/Aura-OS/ARCHITECTURE.md)
-- Active sprint tasks & progress dashboard: [PROGRESS-TRACKER.md](file:///Users/aryansingh/Documents/Aura-OS/PROGRESS-TRACKER.md)
-- UI components, screens & voice states: [UI-REGISTRY.md](file:///Users/aryansingh/Documents/Aura-OS/UI-REGISTRY.md)
+- Deep technical architecture: [ARCHITECTURE.md](file:///Users/aryansingh/Documents/Aura-OS/context/ARCHITECTURE.md)
+- Active sprint tasks & progress dashboard: [PROGRESS-TRACKER.md](file:///Users/aryansingh/Documents/Aura-OS/context/PROGRESS-TRACKER.md)
+- UI components, screens & voice states: [UI-REGISTRY.md](file:///Users/aryansingh/Documents/Aura-OS/context/UI-REGISTRY.md)
