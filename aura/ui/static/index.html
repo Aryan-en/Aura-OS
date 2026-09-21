@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA OS — Autonomous Unified Runtime Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #030712;
+      --surface-glass: rgba(15, 23, 42, 0.65);
+      --surface-border: rgba(56, 189, 248, 0.15);
+      --surface-border-active: rgba(6, 182, 212, 0.4);
+      --cyan-glow: #06B6D4;
+      --cyan-bright: #22D3EE;
+      --teal-track: #14B8A6;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --card-bg: rgba(15, 23, 42, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+        url('/Home.png');
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    /* Subtle backdrop overlay */
+    .bg-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 1;
+    }
+
+    .app-container {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* TOP BAR */
+    .top-bar {
+      height: 48px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+    .top-bar .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+    }
+    .top-bar .logo-icon {
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, var(--cyan-bright), #3B82F6);
+      border-radius: 4px;
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+    .top-bar .tagline {
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      opacity: 0.6;
+    }
+    .top-bar .telemetry {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* MAIN WORKSPACE */
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 240px 1fr 320px;
+      padding: 24px;
+      gap: 24px;
+      overflow: hidden;
+    }
+
+    /* LEFT SIDEBAR */
+    .sidebar {
+      background: var(--surface-glass);
+      border: 1px solid var(--surface-border);
+      border-radius: 20px;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      backdrop-filter: blur(16px);
+    }
+    .nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .nav-item:hover, .nav-item.active {
+      color: #fff;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.1);
+    }
+    .sys-gauges {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .gauge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .gauge-bar {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    .gauge-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan-glow), var(--cyan-bright));
+      border-radius: 2px;
+    }
+
+    /* CENTER STAGE */
+    .center-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+    .greeting-header {
+      align-self: flex-start;
+      margin-top: 8px;
+    }
+    .greeting-header .subtext {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .greeting-header h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-top: 4px;
+    }
+    .greeting-header h1 span {
+      background: linear-gradient(135deg, var(--cyan-bright), #60A5FA);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* THE AURA ORB (UI-001) */
+    .orb-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+    }
+    .orb-outer-ring {
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 
+        0 0 60px rgba(6, 182, 212, 0.2),
+        inset 0 0 60px rgba(6, 182, 212, 0.1);
+      animation: pulse-ring 4s ease-in-out infinite;
+    }
+    @keyframes pulse-ring {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 60px rgba(6, 182, 212, 0.2); }
+      50% { transform: scale(1.03); box-shadow: 0 0 90px rgba(6, 182, 212, 0.35); }
+    }
+    .orb-core {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(34, 211, 238, 0.35), rgba(15, 23, 42, 0.9) 70%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 30px rgba(6, 182, 212, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .orb-brand {
+      font-size: 20px;
+      letter-spacing: 0.35em;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 12px var(--cyan-glow);
+    }
+    .orb-state-label {
+      font-size: 13px;
+      color: var(--cyan-bright);
+      margin-top: 6px;
+      opacity: 0.85;
+      letter-spacing: 0.05em;
+    }
+    .waveform-canvas {
+      width: 140px;
+      height: 36px;
+      margin-top: 10px;
+    }
+
+    /* INPUT BAR */
+    .input-bar {
+      width: 100%;
+      max-width: 580px;
+      background: var(--surface-glass);
+      border: 1px solid var(--surface-border);
+      border-radius: 40px;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(20px);
+      transition: border 0.3s ease;
+    }
+    .input-bar:focus-within {
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 24px rgba(6, 182, 212, 0.3);
+    }
+    .input-field {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+    }
+    .input-field::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+    .mic-button {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan-glow), #2563EB);
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.4);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .mic-button:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 24px var(--cyan-glow);
+    }
+
+    /* PROMPT SUGGESTIONS */
+    .prompt-suggestions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .prompt-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .prompt-chip:hover {
+      background: rgba(6, 182, 212, 0.15);
+      color: #fff;
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+
+    /* RIGHT SIDEBAR */
+    .right-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+    .card-panel {
+      background: var(--surface-glass);
+      border: 1px solid var(--surface-border);
+      border-radius: 20px;
+      padding: 18px;
+      backdrop-filter: blur(16px);
+    }
+    .card-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .agent-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      margin-bottom: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      transition: all 0.2s ease;
+    }
+    .agent-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(6, 182, 212, 0.2);
+      border: 1px solid var(--cyan-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .agent-info {
+      flex: 1;
+    }
+    .agent-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .agent-task {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+    .agent-status-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .badge-idle { background: rgba(100, 116, 139, 0.2); color: #94A3B8; }
+    .badge-executing { background: rgba(6, 182, 212, 0.25); color: var(--cyan-bright); box-shadow: 0 0 8px rgba(6, 182, 212, 0.3); }
+    .badge-done { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+
+    /* TASK LIST */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .task-check {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid var(--surface-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .task-check.checked {
+      background: var(--cyan-glow);
+      border-color: var(--cyan-glow);
+    }
+    .task-check.checked::after {
+      content: '✓';
+      font-size: 11px;
+      color: #030712;
+      font-weight: bold;
+    }
+
+    /* SPATIAL RETICLE (UI-021) */
+    #spatial-reticle {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan-bright);
+      box-shadow: 0 0 14px var(--cyan-glow), inset 0 0 8px var(--cyan-glow);
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.04s ease-out, opacity 0.2s;
+      opacity: 0.85;
+    }
+    #spatial-reticle::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 8px #fff;
+    }
+
+    /* DOCK */
+    .bottom-dock {
+      height: 64px;
+      align-self: center;
+      background: var(--surface-glass);
+      border: 1px solid var(--surface-border);
+      border-radius: 24px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 12px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .dock-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .dock-icon:hover {
+      transform: translateY(-6px) scale(1.1);
+      background: rgba(6, 182, 212, 0.2);
+      border-color: var(--cyan-glow);
+      box-shadow: 0 6px 16px rgba(6, 182, 212, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-overlay"></div>
+
+  <!-- Spatial Reticle (UI-021) simulating 3D raycast target -->
+  <div id="spatial-reticle"></div>
+
+  <div class="app-container">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="brand">
+        <div class="logo-icon"></div>
+        <span>A U R A &nbsp;O S</span>
+      </div>
+      <div class="tagline">A MORE CAPABLE YOU</div>
+      <div class="telemetry">
+        <span>⚡ Connected</span>
+        <span>📡 5G Active</span>
+        <span id="clock-display">10:24 PM</span>
+      </div>
+    </header>
+
+    <!-- Workspace Grid -->
+    <main class="workspace">
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <nav class="nav-list">
+          <div class="nav-item active">🏠 Home</div>
+          <div class="nav-item">🤖 Agents</div>
+          <div class="nav-item">📁 Files</div>
+          <div class="nav-item">📦 Apps</div>
+          <div class="nav-item">💻 Terminal</div>
+          <div class="nav-item">🌐 Browser</div>
+          <div class="nav-item">🔬 Research</div>
+          <div class="nav-item">⚙️ Settings</div>
+        </nav>
+
+        <div class="sys-gauges">
+          <div style="font-size: 11px; letter-spacing: 0.1em; color: var(--text-muted); text-transform: uppercase;">System Telemetry</div>
+          <div>
+            <div class="gauge-row"><span>CPU Load</span><span>12%</span></div>
+            <div class="gauge-bar"><div class="gauge-fill" style="width: 12%;"></div></div>
+          </div>
+          <div>
+            <div class="gauge-row"><span>RAM Used</span><span>46%</span></div>
+            <div class="gauge-bar"><div class="gauge-fill" style="width: 46%;"></div></div>
+          </div>
+          <div>
+            <div class="gauge-row"><span>Storage</span><span>38%</span></div>
+            <div class="gauge-bar"><div class="gauge-fill" style="width: 38%;"></div></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center Stage: Orb & Voice Input -->
+      <section class="center-stage">
+        <div class="greeting-header">
+          <div class="subtext">Good Evening</div>
+          <h1>Let's build something <span>extraordinary.</span></h1>
+        </div>
+
+        <!-- The AURA Orb (UI-001) -->
+        <div class="orb-container" id="aura-orb">
+          <div class="orb-outer-ring">
+            <div class="orb-core">
+              <div class="orb-brand">A U R A</div>
+              <div class="orb-state-label" id="orb-status">Listening...</div>
+              <canvas class="waveform-canvas" id="waveform"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prompt suggestions & Input bar -->
+        <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+          <div class="prompt-suggestions">
+            <div class="prompt-chip" data-prompt="create a folder called DemoProject on my Desktop">“Create DemoProject on Desktop”</div>
+            <div class="prompt-chip" data-prompt="write file test.txt with content Hello Aura OS">“Write test.txt”</div>
+            <div class="prompt-chip" data-prompt="run command uname -a">“System Info”</div>
+          </div>
+
+          <form class="input-bar" id="goal-form">
+            <span style="opacity: 0.5; margin-left: 6px;">⌨️</span>
+            <input type="text" class="input-field" id="goal-input" placeholder="You speak. AURA acts. Type your goal or press Enter..." autocomplete="off">
+            <button type="button" class="mic-button" id="mic-trigger" title="Voice Input">
+              🎙️
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Sidebar: Active Agents & Tasks -->
+      <aside class="right-sidebar">
+        <!-- Active Agents Card -->
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Active Agents</span>
+            <span style="color: var(--cyan-bright); cursor: pointer;">Live</span>
+          </div>
+          <div id="agent-list-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Today Checklist -->
+        <div class="card-panel">
+          <div class="card-title">
+            <span>Today's Tasks</span>
+            <span style="font-size: 11px;">4 Tasks</span>
+          </div>
+          <div class="task-list">
+            <div class="task-item">
+              <div class="task-check checked"></div>
+              <span>Bootstrap AURA Core Daemon</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check checked"></div>
+              <span>Voice & Gesture Engine Spec</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check checked"></div>
+              <span>Multi-Agent Task Scheduling</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check"></div>
+              <span>Boot ARM64 Ubuntu VM in UTM</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Bottom Dock -->
+    <footer class="bottom-dock">
+      <div class="dock-icon" title="Files">📁</div>
+      <div class="dock-icon" title="Code Editor">💻</div>
+      <div class="dock-icon" title="Terminal">⌨️</div>
+      <div class="dock-icon" title="Web Browser">🌐</div>
+      <div class="dock-icon" title="Audio">🎵</div>
+      <div class="dock-icon" title="Notes">📝</div>
+      <div class="dock-icon" style="border-radius: 50%;" title="New Task">➕</div>
+    </footer>
+  </div>
+
+  <script>
+    // 1. Clock display
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock-display').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 2. Spatial Reticle Tracking (UI-021 simulation)
+    const reticle = document.getElementById('spatial-reticle');
+    window.addEventListener('mousemove', (e) => {
+      reticle.style.left = e.clientX + 'px';
+      reticle.style.top = e.clientY + 'px';
+    });
+
+    // 3. Audio Waveform Sine Animation (Canvas)
+    const canvas = document.getElementById('waveform');
+    const ctx = canvas.getContext('2d');
+    let phase = 0;
+
+    function drawWaveform() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.strokeStyle = '#22D3EE';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#06B6D4';
+      ctx.shadowBlur = 8;
+
+      const midY = canvas.height / 2;
+      for (let x = 0; x < canvas.width; x++) {
+        const y = midY + Math.sin((x * 0.08) + phase) * 10 * Math.sin(phase * 0.5);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      phase += 0.08;
+      requestAnimationFrame(drawWaveform);
+    }
+    drawWaveform();
+
+    // 4. Polling Active Agents via aurad IPC API
+    const agentContainer = document.getElementById('agent-list-container');
+    const orbStatus = document.getElementById('orb-status');
+
+    async function fetchAgents() {
+      try {
+        const res = await fetch('/api/agents');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.agents) return;
+
+        agentContainer.replaceChildren();
+        data.agents.forEach(agent => {
+          const item = document.createElement('div');
+          item.className = 'agent-item';
+
+          const avatar = document.createElement('div');
+          avatar.className = 'agent-avatar';
+          avatar.textContent = agent.name.charAt(0);
+
+          const info = document.createElement('div');
+          info.className = 'agent-info';
+
+          const name = document.createElement('div');
+          name.className = 'agent-name';
+          name.textContent = agent.name;
+
+          const task = document.createElement('div');
+          task.className = 'agent-task';
+          task.textContent = agent.current_task || agent.role;
+
+          info.appendChild(name);
+          info.appendChild(task);
+
+          const badge = document.createElement('div');
+          badge.className = 'agent-status-badge ' + (
+            agent.state === 'EXECUTING' ? 'badge-executing' :
+            agent.state === 'DONE' ? 'badge-done' : 'badge-idle'
+          );
+          badge.textContent = agent.state;
+
+          item.appendChild(avatar);
+          item.appendChild(info);
+          item.appendChild(badge);
+          agentContainer.appendChild(item);
+        });
+      } catch (err) {
+        console.warn('Daemon offline or unreachable', err);
+      }
+    }
+    setInterval(fetchAgents, 2000);
+    fetchAgents();
+
+    // 5. Goal Form Submission to aurad Daemon
+    const goalForm = document.getElementById('goal-form');
+    const goalInput = document.getElementById('goal-input');
+
+    async function submitGoal(promptText) {
+      if (!promptText || !promptText.trim()) return;
+      orbStatus.textContent = 'Executing...';
+      try {
+        const res = await fetch('/api/goal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: promptText.trim() })
+        });
+        const result = await res.json();
+        orbStatus.textContent = result.success ? 'Goal Succeeded!' : 'Task Failed';
+        setTimeout(() => { orbStatus.textContent = 'Listening...'; }, 3000);
+        fetchAgents();
+      } catch (err) {
+        orbStatus.textContent = 'Error: ' + err.message;
+        setTimeout(() => { orbStatus.textContent = 'Listening...'; }, 3000);
+      }
+    }
+
+    goalForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = goalInput.value;
+      goalInput.value = '';
+      submitGoal(val);
+    });
+
+    // Chip click handlers
+    document.querySelectorAll('.prompt-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const prompt = chip.getAttribute('data-prompt');
+        submitGoal(prompt);
+      });
+    });
+
+    // Task toggle
+    document.querySelectorAll('.task-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const check = item.querySelector('.task-check');
+        check.classList.toggle('checked');
+      });
+    });
+  </script>
+</body>
+</html>
