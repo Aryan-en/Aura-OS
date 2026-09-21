@@ -1,0 +1,52 @@
+# Large Disk Images & ISOs
+ubuntu-24.04.3-desktop-arm64.iso
+*.iso
+*.img
+*.qcow2
+*.utm
+
+# Python runtime & environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Linting
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# System & OS artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# AURA Local Runtime data & sockets
+*.sock
+*.log
+data/
+run/
+~/.local/share/aura/
