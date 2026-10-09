@@ -5,8 +5,10 @@ Projects 3D pointing vectors onto the 2D Wayland desktop surface for the Cyan Re
 
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Optional
+
 from pydantic import BaseModel, Field
+
 from aura.vision.landmarks import HandLandmarks
 
 

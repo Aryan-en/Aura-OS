@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import time
 from typing import Optional
+
 from aura.voice.buffer import AudioRingBuffer
 
 

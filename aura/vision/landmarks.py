@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 from typing import List, Tuple
+
 from pydantic import BaseModel, Field
 
 

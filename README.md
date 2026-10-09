@@ -3,7 +3,7 @@
 > A voice-first and gesture-enabled, AI-native operating environment built on top of Linux.
 
 [![Status: Pre-Alpha](https://img.shields.io/badge/Status-Pre--Alpha-red.svg)](file:///Users/aryansingh/Documents/Aura-OS/context/PROGRESS-TRACKER.md)
-[![Target: ARM64 Linux](https://img.shields.io/badge/Target-ARM64%20Linux%20(UTM)-blue.svg)](file:///Users/aryansingh/Documents/Aura-OS/context/PLAN.md)
+[![Target: ARM64 Linux](https://img.shields.io/badge/Target-ARM64%20Linux%20(UTM%20%7C%20Raspberry%20Pi%205)-blue.svg)](file:///Users/aryansingh/Documents/Aura-OS/docs/RASPBERRY_PI_5.md)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Architecture Docs](https://img.shields.io/badge/Docs-Authoritative%20Architecture-purple.svg)](file:///Users/aryansingh/Documents/Aura-OS/context/ARCHITECTURE.md)
 
@@ -341,3 +341,4 @@ All human contributors and AI coding agents working on AURA OS **must** abide by
 - **[PLAN.md](file:///Users/aryansingh/Documents/Aura-OS/context/PLAN.md)**: Detailed engineering phase plan, definition of done, automated test suites, and risk register.
 - **[PROGRESS-TRACKER.md](file:///Users/aryansingh/Documents/Aura-OS/context/PROGRESS-TRACKER.md)**: Live task tracker, component status matrix, known bugs, and developer session notes.
 - **[UI-REGISTRY.md](file:///Users/aryansingh/Documents/Aura-OS/context/UI-REGISTRY.md)**: Canonical registry of all UI components, Wayland screens, visual design tokens, and voice state machines.
+- **[RASPBERRY_PI_5.md](file:///Users/aryansingh/Documents/Aura-OS/docs/RASPBERRY_PI_5.md)**: Deployment and hardware tuning guide for bare-metal Raspberry Pi 5 (ARM64) appliances.

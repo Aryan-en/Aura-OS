@@ -6,7 +6,6 @@ Maintains high-performance, lock-free ring buffer for 16kHz mono audio streams.
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 
 class AudioRingBuffer:

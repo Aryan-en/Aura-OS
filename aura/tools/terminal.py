@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-import shlex
 from typing import Any, Dict
 
 from aura.core.logger import logger

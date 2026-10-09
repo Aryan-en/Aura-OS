@@ -6,6 +6,7 @@ Transcribes speech audio into textual tokens locally using quantized Whisper mod
 from __future__ import annotations
 
 from typing import Optional
+
 from aura.core.logger import logger
 
 

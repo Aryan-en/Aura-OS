@@ -1,0 +1,47 @@
+# ==============================================================================
+# AURA OS — Raspberry Pi 5 Hardware Profile Configuration
+# Target: Raspberry Pi 5 (BCM2712 Quad-Core Cortex-A76 @ 2.4GHz, 4GB/8GB RAM)
+# OS: Raspberry Pi OS 64-bit (Debian Bookworm) / Ubuntu 24.04 LTS ARM64
+# ==============================================================================
+
+environment: "rpi5"
+version: "0.1.0-prealpha"
+
+socket:
+  max_payload_bytes: 10485760
+  client_timeout_sec: 30.0
+
+voice:
+  # Standard 16kHz mono audio processing
+  sample_rate: 16000
+  channels: 1
+  vad_silence_ms: 300
+  wake_word: "aura"
+
+  # Speech-to-Text: On Raspberry Pi 5, base.en INT8 provides sub-500ms latency.
+  # For maximum responsiveness, "tiny.en" can also be selected.
+  stt_model: "base.en"
+
+  # Text-to-Speech: Low-latency Piper ONNX voice optimized for ARM NEON
+  tts_voice: "en_US-lessac-medium"
+
+vision:
+  # Camera capture: default USB UVC webcam (/dev/video0)
+  camera_index: 0
+  # 30 FPS tracking target is sustained natively on Pi 5 Cortex-A76 CPU
+  target_fps: 30
+  detection_confidence: 0.7
+  tracking_confidence: 0.6
+  raycast_fov_deg: 68.0
+  # Backend: 'v4l2' for USB cameras, 'libcamera' for Pi Camera Module 3
+  camera_backend: "v4l2"
+
+agent:
+  max_retry_budget: 3
+  default_timeout_sec: 60.0
+
+security:
+  enforce_voice_confirmation: true
+  allow_root_execution: false
+  # Sandboxing via Linux user namespaces and bubblewrap
+  isolate_processes_bubblewrap: true

@@ -61,6 +61,7 @@ class VisionConfig(BaseModel):
     detection_confidence: float = Field(default=0.7, ge=0.0, le=1.0)
     tracking_confidence: float = Field(default=0.6, ge=0.0, le=1.0)
     raycast_fov_deg: float = Field(default=68.0, description="Camera horizontal field of view")
+    camera_backend: str = Field(default="v4l2", description="Camera backend ('v4l2' or 'libcamera')")
 
 
 class AgentConfig(BaseModel):
@@ -93,10 +94,33 @@ class AuraConfig(BaseModel):
     def load(cls, config_path: Optional[Path] = None) -> AuraConfig:
         """
         Load configuration from YAML file or environment overrides.
-        Falls back securely to standard defaults if file does not exist.
+        Discovers config in the following order:
+        1. Explicit config_path argument
+        2. AURA_CONFIG environment variable
+        3. ~/.config/aura/aura.yaml
+        4. config/rpi5.yaml (if running in repo root)
+        5. config/aura.yaml
+        Falls back securely to standard defaults if no configuration file is found.
         """
-        if config_path and config_path.is_file():
-            with open(config_path, "r", encoding="utf-8") as f:
+        target_path: Optional[Path] = None
+        if config_path:
+            target_path = Path(config_path)
+        elif os.environ.get("AURA_CONFIG"):
+            target_path = Path(os.environ["AURA_CONFIG"])
+        else:
+            candidates = [
+                Path.home() / ".config" / "aura" / "aura.yaml",
+                Path.home() / ".config" / "aura" / "config.yaml",
+                Path("config/rpi5.yaml"),
+                Path("config/aura.yaml"),
+            ]
+            for cand in candidates:
+                if cand.is_file():
+                    target_path = cand
+                    break
+
+        if target_path and target_path.is_file():
+            with open(target_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
                 return cls(**data)
         return cls()

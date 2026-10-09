@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Any, Callable, Dict, Optional
+
 from aura.agents.manager import AgentManager
 from aura.core.logger import logger
 from aura.voice.buffer import AudioRingBuffer

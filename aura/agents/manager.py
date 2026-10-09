@@ -6,10 +6,10 @@ Supervises specialized domain agents, orchestrates goal lifecycles, and maintain
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+
 from aura.agents.base import AgentInfo, AgentState
 from aura.agents.loop import ExecutionLoop
 from aura.agents.planner import GoalPlanner
-from aura.core.logger import logger
 from aura.memory.db import MemoryDB
 
 

@@ -5,11 +5,13 @@ Primary userspace daemon managing all subsystems: Agents, Voice, Vision, Memory,
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import os
 import platform
 import signal
 import time
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from aura import __version__
@@ -189,7 +191,18 @@ class AuraDaemon:
 
 
 def main() -> None:
-    daemon = AuraDaemon()
+    parser = argparse.ArgumentParser(description=f"AURA OS Unified Runtime Daemon (aurad v{__version__})")
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=Path,
+        default=None,
+        help="Path to YAML configuration file (e.g. config/rpi5.yaml)",
+    )
+    args = parser.parse_args()
+
+    config = AuraConfig.load(config_path=args.config)
+    daemon = AuraDaemon(config=config)
     try:
         asyncio.run(daemon.run())
     except KeyboardInterrupt:

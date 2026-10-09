@@ -10,7 +10,6 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from aura.core.logger import logger
 from aura.ipc.protocol import IPCRequest, IPCResponse
 
 
@@ -38,7 +37,7 @@ class AuraIPCClient:
         except (asyncio.TimeoutError, ConnectionRefusedError) as e:
             raise ConnectionError(
                 f"Could not connect to AURA daemon socket at '{self.socket_path}': {e}"
-            )
+            ) from e
 
     async def call(
         self, method: str, params: Optional[Dict[str, Any]] = None, timeout: Optional[float] = None
@@ -61,10 +60,10 @@ class AuraIPCClient:
                 raise ConnectionResetError("Server closed connection unexpectedly")
 
             return IPCResponse.model_validate_json(line.decode("utf-8").strip())
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as err:
             raise TimeoutError(
                 f"IPC call '{method}' timed out after {effective_timeout}s"
-            )
+            ) from err
 
     async def ping(self) -> float:
         """

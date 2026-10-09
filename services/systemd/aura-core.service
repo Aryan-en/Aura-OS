@@ -1,0 +1,22 @@
+[Unit]
+Description=AURA OS Core Runtime Daemon (aurad)
+Documentation=https://github.com/Aryan-en/Aura-OS
+After=pipewire.service wireplumber.service sound.target network.target
+Wants=pipewire.service wireplumber.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Aura-OS
+Environment=PYTHONUNBUFFERED=1
+Environment=AURA_CONFIG=%h/Aura-OS/config/rpi5.yaml
+ExecStart=%h/Aura-OS/.venv/bin/python3 -m aura.core.main --config %h/Aura-OS/config/rpi5.yaml
+Restart=on-failure
+RestartSec=3s
+LimitNOFILE=65535
+
+# Process hygiene & Sandboxing
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

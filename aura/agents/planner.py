@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Optional
+
 from aura.agents.task import Task, TaskDAG
 
 
@@ -17,7 +17,6 @@ class GoalPlanner:
     @staticmethod
     def plan(goal_prompt: str) -> TaskDAG:
         dag = TaskDAG(goal_prompt=goal_prompt)
-        prompt_lower = goal_prompt.lower().strip()
 
         # Pattern 1: Folder creation ("create a folder called X on my Desktop")
         folder_match = re.search(

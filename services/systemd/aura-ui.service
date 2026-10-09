@@ -1,0 +1,19 @@
+[Unit]
+Description=AURA OS Desktop HUD Simulator Server
+Documentation=https://github.com/Aryan-en/Aura-OS
+After=aura-core.service
+Wants=aura-core.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Aura-OS
+Environment=PYTHONUNBUFFERED=1
+ExecStart=%h/Aura-OS/.venv/bin/python3 -m aura.ui.server --host 0.0.0.0 --port 8765
+Restart=on-failure
+RestartSec=3s
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

@@ -4,7 +4,8 @@ Configures contextual log sinks, masks credentials, and prepares for journald.
 """
 
 import sys
-from typing import Any, Dict
+from typing import Any
+
 from loguru import logger
 
 # List of sensitive keys to redact from logs

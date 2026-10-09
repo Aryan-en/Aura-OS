@@ -8,7 +8,6 @@ import stat
 import tempfile
 from pathlib import Path
 
-import pytest
 from aura.ipc.client import AuraIPCClient
 from aura.ipc.protocol import ErrorCode, IPCRequest
 from aura.ipc.server import AsyncUnixSocketServer

@@ -6,9 +6,9 @@ import asyncio
 import tempfile
 from pathlib import Path
 
-from aura.tools.registry import registry
 import aura.tools.filesystem  # noqa: F401
-import aura.tools.terminal    # noqa: F401
+import aura.tools.terminal  # noqa: F401
+from aura.tools.registry import registry
 
 
 def test_tool_registry_discovery() -> None:

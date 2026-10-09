@@ -6,16 +6,11 @@ Serves the local desktop HUD interface on localhost:8765 and bridges to aurad UD
 from __future__ import annotations
 
 import asyncio
-import json
-import mimetypes
-from http.server import SimpleHTTPRequestHandler
-from pathlib import Path
-from typing import Any, Dict
-from aiohttp import web if False else None  # Use built-in asyncio stream or http.server
 import http.server
-import socketserver
-import threading
+import json
 import urllib.parse
+from pathlib import Path
+from typing import Any
 
 from aura.core.config import get_default_socket_path
 from aura.core.logger import logger
@@ -128,4 +123,19 @@ def run_ui_server(host: str = "127.0.0.1", port: int = 8765) -> None:
 
 
 if __name__ == "__main__":
-    run_ui_server()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="AURA OS Desktop Shell Simulator Web Server")
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Host address to bind to (e.g. 0.0.0.0 for LAN access on Raspberry Pi)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8765,
+        help="Port number to listen on (default: 8765)",
+    )
+    args = parser.parse_args()
+    run_ui_server(host=args.host, port=args.port)

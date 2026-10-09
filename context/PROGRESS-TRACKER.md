@@ -66,7 +66,8 @@
   - `SYS-004`: Author canonical UI component registry (`UI-REGISTRY.md`).
   - `SYS-005`: Implement `aurad` core daemon entry point and basic Unix Domain Socket server.
   - `SYS-008`: Implement structured JSON logging with parameter masking (`aura/core/logger.py`).
-  - `SYS-009`: Implement `aura-cli` developer utility for ping, status, and stop (`aura/cli.py`).
+  - `SYS-007`: Implement systemd user service units (`aura-core.service`, `aura-ui.service`).
+  - `SYS-011`: Raspberry Pi 5 hardware profile, automated provisioning, and diagnostics suite.
 - **In Progress**:
   - `SYS-006`: Configure automated UTM VM bootstrap Makefile targets.
 - **Next Up**:
@@ -89,10 +90,11 @@
 | `SYS-004` | Author canonical UI and voice interaction registry | 🟢 Complete | P0 | `SYS-002` | See `UI-REGISTRY.md` |
 | `SYS-005` | Implement `aurad` daemon entrypoint and UDS IPC server | 🟢 Complete | P0 | `SYS-001` | `aura/core/main.py`, `aura/ipc/server.py` |
 | `SYS-006` | Create UTM ARM64 VM provisioning scripts & Makefile targets | 🟡 In Progress | P1 | `SYS-001` | Target Ubuntu 24.04 / Debian 12 |
-| `SYS-007` | Create systemd user service unit (`aura-core.service`) | 🔵 Planned | P1 | `SYS-005` | `services/systemd/` |
+| `SYS-007` | Create systemd user service unit (`aura-core.service`, `aura-ui.service`) | 🟢 Complete | P1 | `SYS-005` | `services/systemd/` |
 | `SYS-008` | Implement structured JSON logging with `journald` bridge | 🟢 Complete | P1 | `SYS-005` | `aura/core/logger.py` |
 | `SYS-009` | Implement `aura-cli` developer utility for ping and status | 🟢 Complete | P2 | `SYS-005` | `aura/cli.py` (ping latency < 1ms) |
 | `SYS-010` | Implement D-Bus session bus service (`org.auraos.Core`) | 🔵 Planned | P1 | `SYS-005` | Using `sdbus` or `pydbus` |
+| `SYS-011` | Raspberry Pi 5 hardware profile, provisioning & diagnostics | 🟢 Complete | P1 | `SYS-005` | `config/rpi5.yaml`, `scripts/rpi5/` |
 
 ### 2. Voice Subsystem (`VOICE`)
 

@@ -34,6 +34,14 @@ vision = [
     "mediapipe>=0.10.14",
     "opencv-python>=4.9.0",
 ]
+rpi = [
+    "openwakeword>=0.6.0",
+    "faster-whisper>=1.0.0",
+    "piper-tts>=1.2.0",
+    "webrtcvad>=2.0.10",
+    "mediapipe>=0.10.14",
+    "opencv-python-headless>=4.9.0",
+]
 
 [project.scripts]
 aura = "aura.cli:main"
@@ -53,7 +61,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]
-ignore = []
+ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
