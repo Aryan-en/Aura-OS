@@ -14,6 +14,27 @@ import yaml
 from pydantic import BaseModel, Field
 
 
+def _load_env_file() -> None:
+    for candidate in [Path.cwd() / ".env", Path(__file__).parent.parent.parent / ".env"]:
+        if candidate.exists():
+            try:
+                for line in candidate.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        k, v = k.strip(), v.strip().strip('"').strip("'")
+                        if k not in os.environ:
+                            os.environ[k] = v
+            except Exception:
+                pass
+            break
+    if "GEMINI_API_KEY" not in os.environ and "GEMINI_API" in os.environ:
+        os.environ["GEMINI_API_KEY"] = os.environ["GEMINI_API"]
+
+
+_load_env_file()
+
+
 def get_default_socket_path() -> Path:
     """
     Derive the secure default Unix Domain Socket path.
@@ -80,6 +101,20 @@ class SecurityConfig(BaseModel):
     isolate_processes_bubblewrap: bool = Field(default=True)
 
 
+class GeminiConfig(BaseModel):
+    """Google Gemini API configuration for agent reasoning & planning."""
+    api_key: Optional[str] = Field(
+        default_factory=lambda: os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API"),
+        description="Google Gemini API Key",
+    )
+    model: str = Field(
+        default="gemini-3.8-flash",
+        description="Gemini model identifier (e.g. gemini-3.8-flash, gemini-2.5-flash)",
+    )
+    temperature: float = Field(default=0.2, ge=0.0, le=1.0)
+    timeout_sec: float = Field(default=20.0, gt=0.0)
+
+
 class AuraConfig(BaseModel):
     """Root configuration for AURA OS."""
     environment: str = Field(default="development")
@@ -89,6 +124,7 @@ class AuraConfig(BaseModel):
     vision: VisionConfig = Field(default_factory=VisionConfig)
     agent: AgentConfig = Field(default_factory=AgentConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
+    gemini: GeminiConfig = Field(default_factory=GeminiConfig)
 
     @classmethod
     def load(cls, config_path: Optional[Path] = None) -> AuraConfig:
@@ -122,5 +158,11 @@ class AuraConfig(BaseModel):
         if target_path and target_path.is_file():
             with open(target_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
-                return cls(**data)
-        return cls()
+                cfg = cls(**data)
+                if cfg.gemini.api_key is None:
+                    cfg.gemini.api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API")
+                return cfg
+        cfg = cls()
+        if cfg.gemini.api_key is None:
+            cfg.gemini.api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API")
+        return cfg

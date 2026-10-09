@@ -45,3 +45,9 @@ security:
   allow_root_execution: false
   # Sandboxing via Linux user namespaces and bubblewrap
   isolate_processes_bubblewrap: true
+
+gemini:
+  api_key: null  # Loaded from GEMINI_API_KEY environment variable or .env
+  model: "gemini-3.8-flash"
+  temperature: 0.2
+  timeout_sec: 20.0

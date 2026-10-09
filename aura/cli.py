@@ -104,6 +104,40 @@ async def cmd_stop(socket_path: Path) -> int:
         return 1
 
 
+async def cmd_voice(socket_path: Path, action: str, text: Optional[str] = None) -> int:
+    try:
+        async with AuraIPCClient(socket_path=socket_path, timeout=60.0) as client:
+            if action == "status":
+                res = await client.call("voice.status")
+            elif action == "speak":
+                if not text:
+                    print("Error: text required for speak", file=sys.stderr)
+                    return 1
+                res = await client.call("voice.speak", {"text": text})
+            elif action == "listen":
+                res = await client.call("voice.listen")
+            elif action == "pause":
+                res = await client.call("voice.pause")
+            elif action == "interact":
+                if not text:
+                    print("Error: prompt required for interact", file=sys.stderr)
+                    return 1
+                res = await client.call("voice.interact", {"prompt": text, "speak": True})
+            else:
+                print(f"Unknown voice action: {action}", file=sys.stderr)
+                return 1
+
+            if res.success:
+                print(json.dumps(res.data, indent=2))
+                return 0
+            else:
+                print(f"Error: {res.error}", file=sys.stderr)
+                return 1
+    except Exception as e:
+        print(f"Could not connect to aurad: {e}", file=sys.stderr)
+        return 1
+
+
 def main(args: Optional[list[str]] = None) -> None:
     parser = argparse.ArgumentParser(
         prog="aura-cli",
@@ -125,6 +159,14 @@ def main(args: Optional[list[str]] = None) -> None:
     goal_parser = subparsers.add_parser("goal", help="Submit a goal to AURA agents")
     goal_parser.add_argument("prompt", type=str, help="Natural language goal prompt")
 
+    voice_parser = subparsers.add_parser("voice", help="Control and query Voice subsystem")
+    voice_parser.add_argument(
+        "action",
+        choices=["status", "speak", "listen", "pause", "interact"],
+        help="Voice action",
+    )
+    voice_parser.add_argument("text", nargs="?", default=None, help="Text to speak or prompt to interact")
+
     subparsers.add_parser("stop", help="Request graceful daemon shutdown")
 
     parsed = parser.parse_args(args)
@@ -139,6 +181,8 @@ def main(args: Optional[list[str]] = None) -> None:
         ret = asyncio.run(cmd_tools(parsed.socket))
     elif parsed.command == "goal":
         ret = asyncio.run(cmd_goal(parsed.socket, parsed.prompt))
+    elif parsed.command == "voice":
+        ret = asyncio.run(cmd_voice(parsed.socket, parsed.action, parsed.text))
     elif parsed.command == "stop":
         ret = asyncio.run(cmd_stop(parsed.socket))
     else:

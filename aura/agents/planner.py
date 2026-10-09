@@ -7,17 +7,44 @@ from __future__ import annotations
 
 import os
 import re
+from typing import Optional
 
+from aura.agents.gemini import GeminiClient
 from aura.agents.task import Task, TaskDAG
+from aura.core.logger import logger
+from aura.tools.registry import registry
 
 
 class GoalPlanner:
     """Plans execution graphs from natural language goal prompts."""
 
     @staticmethod
-    def plan(goal_prompt: str) -> TaskDAG:
+    def plan(goal_prompt: str, gemini_client: Optional[GeminiClient] = None) -> TaskDAG:
         dag = TaskDAG(goal_prompt=goal_prompt)
 
+        # 1. High-Parameter Reasoning via Google Gemini API
+        client = gemini_client or GeminiClient()
+        if client.is_configured():
+            try:
+                tools_def = [t.model_dump() for t in registry.get_definitions()]
+                ai_tasks = client.plan_goal(goal_prompt, tools_def)
+                if ai_tasks and len(ai_tasks) > 0:
+                    for t_spec in ai_tasks:
+                        task = Task(
+                            title=t_spec.get("title", f"Execute {t_spec.get('tool_name')}"),
+                            tool_name=t_spec.get("tool_name"),
+                            params=t_spec.get("params", {}),
+                            dependencies=t_spec.get("dependencies", []),
+                        )
+                        dag.add_task(task)
+                    logger.info(
+                        f"Gemini successfully planned {len(dag.tasks)} tasks for goal: '{goal_prompt}'"
+                    )
+                    return dag
+            except Exception as e:
+                logger.warning(f"Gemini AI planning failed ({e}), falling back to deterministic rules")
+
+        # 2. Local Deterministic Rule Fallback
         # Pattern 1: Folder creation ("create a folder called X on my Desktop")
         folder_match = re.search(
             r"(?:create|make)(?:\s+a)?\s+(?:folder|directory)(?:\s+called|\s+named)?\s+([a-zA-Z0-9_\-\.\/]+)(?:\s+on|\s+in)?\s*(.*)?",

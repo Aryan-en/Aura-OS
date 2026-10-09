@@ -47,6 +47,8 @@ Thumbs.db
 # AURA Local Runtime data & sockets
 *.sock
 *.log
+.env
+*.env
 data/
 run/
 ~/.local/share/aura/

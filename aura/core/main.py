@@ -78,6 +78,10 @@ class AuraDaemon:
 
         # Voice
         self.ipc_server.register("voice.pause", self._handle_voice_pause)
+        self.ipc_server.register("voice.status", self._handle_voice_status)
+        self.ipc_server.register("voice.speak", self._handle_voice_speak)
+        self.ipc_server.register("voice.listen", self._handle_voice_listen)
+        self.ipc_server.register("voice.interact", self._handle_voice_interact)
 
     async def _handle_status(self, request: IPCRequest) -> Dict[str, Any]:
         uptime_sec = round(time.time() - self.start_time, 2)
@@ -121,7 +125,7 @@ class AuraDaemon:
 
     async def _handle_execute_tool(self, request: IPCRequest) -> Dict[str, Any]:
         tool_name = request.params.get("name")
-        args = request.params.get("args", {})
+        args = request.params.get("args") or request.params.get("params") or {}
         if not tool_name:
             raise ValueError("Parameter 'name' is required.")
         return await registry.execute(tool_name, **args)
@@ -149,9 +153,30 @@ class AuraDaemon:
             "screen_target": target.model_dump(),
         }
 
+    async def _handle_voice_status(self, request: IPCRequest) -> Dict[str, Any]:
+        return self.voice.get_status()
+
     async def _handle_voice_pause(self, request: IPCRequest) -> Dict[str, Any]:
         self.voice.emergency_pause()
         return {"status": "paused", "message": "Voice audio and speech halted."}
+
+    async def _handle_voice_speak(self, request: IPCRequest) -> Dict[str, Any]:
+        text = request.params.get("text", "").strip()
+        if not text:
+            raise ValueError("Parameter 'text' is required.")
+        asyncio.create_task(self.voice.speak_text(text))
+        return {"status": "speaking", "text": text}
+
+    async def _handle_voice_listen(self, request: IPCRequest) -> Dict[str, Any]:
+        self.voice.start_listening()
+        return {"status": "listening", "state": self.voice.state.value}
+
+    async def _handle_voice_interact(self, request: IPCRequest) -> Dict[str, Any]:
+        prompt = request.params.get("prompt") or request.params.get("goal")
+        speak = request.params.get("speak", True)
+        if not prompt:
+            raise ValueError("Parameter 'prompt' is required.")
+        return await self.voice.interact(prompt, speak=speak)
 
     async def request_shutdown(self, delay: float = 0.0) -> None:
         if delay > 0:

@@ -3,22 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AURA OS — Autonomous Unified Runtime Architecture</title>
+  <title>AURA OS — Your Intelligent Operating Environment</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #030712;
-      --surface-glass: rgba(15, 23, 42, 0.65);
-      --surface-border: rgba(56, 189, 248, 0.15);
-      --surface-border-active: rgba(6, 182, 212, 0.4);
-      --cyan-glow: #06B6D4;
+      --bg-dark: #050B14;
+      --panel-bg: rgba(10, 18, 32, 0.72);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --panel-border-hover: rgba(34, 211, 238, 0.28);
+      --cyan-primary: #00F2FE;
       --cyan-bright: #22D3EE;
-      --teal-track: #14B8A6;
-      --text-main: #F8FAFC;
-      --text-muted: #94A3B8;
-      --card-bg: rgba(15, 23, 42, 0.45);
+      --cyan-glow: rgba(6, 182, 212, 0.45);
+      --blue-accent: #38BDF8;
+      --blue-electric: #4FACFE;
+      --purple-accent: #A855F7;
+      --amber-accent: #F59E0B;
+      --emerald-accent: #10B981;
+      --rose-accent: #F43F5E;
+      --text-main: #FFFFFF;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --glass-blur: blur(24px);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
     }
 
     * {
@@ -29,717 +40,2514 @@
     }
 
     body {
-      font-family: 'Outfit', sans-serif;
-      background: var(--bg-dark);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 35%, rgba(6, 182, 212, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 85% 15%, rgba(56, 189, 248, 0.08) 0%, transparent 45%),
+        linear-gradient(180deg, rgba(5, 11, 20, 0.6) 0%, rgba(3, 7, 18, 0.85) 100%),
+        url('/wallpaper.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
       color: var(--text-main);
       height: 100vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      background-image: 
-        radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.12) 0%, transparent 60%),
-        radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
-        url('/Home.png');
-      background-size: cover;
-      background-position: center;
-      position: relative;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Subtle backdrop overlay */
-    .bg-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(3, 7, 18, 0.7);
-      backdrop-filter: blur(8px);
-      z-index: 1;
-    }
-
-    .app-container {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      width: 100vw;
-    }
-
-    /* TOP BAR */
+    /* -------------------------------------------------------------
+       TOP NAVIGATION BAR
+       ------------------------------------------------------------- */
     .top-bar {
-      height: 48px;
-      padding: 0 28px;
+      height: 60px;
+      padding: 0 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      font-size: 13px;
-      color: var(--text-muted);
-      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--panel-border);
+      background: rgba(5, 11, 20, 0.6);
+      backdrop-filter: var(--glass-blur);
+      z-index: 50;
+      flex-shrink: 0;
     }
-    .top-bar .brand {
+
+    .brand-section {
       display: flex;
       align-items: center;
       gap: 12px;
-      color: #fff;
-      font-weight: 600;
-      letter-spacing: 0.2em;
+      width: 240px;
+      cursor: pointer;
     }
-    .top-bar .logo-icon {
-      width: 20px;
-      height: 20px;
-      background: linear-gradient(135deg, var(--cyan-bright), #3B82F6);
-      border-radius: 4px;
-      box-shadow: 0 0 12px var(--cyan-glow);
+    .brand-logo-orb {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #22D3EE, #0284C7 60%, #082f49);
+      box-shadow: 0 0 16px var(--cyan-glow), inset 0 0 8px rgba(255, 255, 255, 0.6);
+      position: relative;
+      animation: pulse-logo 3s ease-in-out infinite alternate;
     }
-    .top-bar .tagline {
-      font-size: 11px;
-      letter-spacing: 0.25em;
-      opacity: 0.6;
+    @keyframes pulse-logo {
+      0% { box-shadow: 0 0 10px rgba(6, 182, 212, 0.4); transform: scale(1); }
+      100% { box-shadow: 0 0 22px rgba(6, 182, 212, 0.8); transform: scale(1.04); }
     }
-    .top-bar .telemetry {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    /* MAIN WORKSPACE */
-    .workspace {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 240px 1fr 320px;
-      padding: 24px;
-      gap: 24px;
-      overflow: hidden;
-    }
-
-    /* LEFT SIDEBAR */
-    .sidebar {
-      background: var(--surface-glass);
-      border: 1px solid var(--surface-border);
-      border-radius: 20px;
-      padding: 20px 16px;
+    .brand-titles {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      backdrop-filter: blur(16px);
     }
+    .brand-name {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.25em;
+      color: #FFFFFF;
+      text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+    .brand-subtitle {
+      font-size: 8.5px;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    /* Top Search Bar */
+    .top-search-bar {
+      flex: 1;
+      max-width: 580px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .top-search-input {
+      width: 100%;
+      height: 38px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: var(--radius-full);
+      padding: 0 46px 0 38px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      backdrop-filter: blur(12px);
+      transition: all 0.25s ease;
+    }
+    .top-search-input:focus {
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+      background: rgba(15, 23, 42, 0.85);
+    }
+    .top-search-icon {
+      position: absolute;
+      left: 14px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .top-search-mic {
+      position: absolute;
+      right: 6px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284C7, #06B6D4);
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .top-search-mic:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.8);
+    }
+
+    /* Top Right Controls */
+    .top-right-group {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .top-indicators {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--text-secondary);
+    }
+    .top-indicator-btn {
+      background: transparent;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+    }
+    .top-indicator-btn:hover {
+      color: var(--cyan-bright);
+    }
+    .top-clock-group {
+      text-align: right;
+    }
+    .top-time {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: 0.02em;
+    }
+    .top-date {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0F172A, #1E293B);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+    }
+
+    /* -------------------------------------------------------------
+       MAIN APPLICATION LAYOUT (3 COLUMNS)
+       ------------------------------------------------------------- */
+    .main-workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* -------------------------------------------------------------
+       LEFT SIDEBAR
+       ------------------------------------------------------------- */
+    .left-sidebar {
+      width: 220px;
+      background: rgba(6, 12, 22, 0.65);
+      backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      padding: 14px 12px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 20;
+    }
+    .left-sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .left-sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
     .nav-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 3px;
+      list-style: none;
     }
     .nav-item {
       display: flex;
       align-items: center;
-      gap: 14px;
-      padding: 10px 14px;
-      border-radius: 12px;
-      color: var(--text-muted);
-      font-size: 14px;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
       font-weight: 500;
+      color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
     }
-    .nav-item:hover, .nav-item.active {
-      color: #fff;
-      background: rgba(6, 182, 212, 0.15);
-      border: 1px solid rgba(6, 182, 212, 0.3);
-      box-shadow: 0 0 16px rgba(6, 182, 212, 0.1);
+    .nav-item:hover {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.04);
     }
-    .sys-gauges {
+    .nav-item.active {
+      color: #FFFFFF;
+      font-weight: 600;
+      background: linear-gradient(90deg, rgba(6, 182, 212, 0.25) 0%, rgba(14, 165, 233, 0.1) 100%);
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+    }
+    .nav-item.active svg {
+      color: var(--cyan-bright);
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+      margin: 12px 4px;
+    }
+
+    .sidebar-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+    .sidebar-add-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    .sidebar-add-btn:hover {
+      color: var(--cyan-bright);
+    }
+
+    .workspace-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      gap: 2px;
+      list-style: none;
     }
-    .gauge-row {
+    .workspace-item {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      font-size: 13px;
+      gap: 10px;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
     }
-    .gauge-bar {
-      height: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 2px;
-      margin-top: 4px;
+    .workspace-item:hover {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    /* Music Player Widget */
+    .sidebar-music-card {
+      margin-top: auto;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      backdrop-filter: blur(12px);
+    }
+    .music-art {
+      width: 38px;
+      height: 38px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #EF4444, #F97316);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+      flex-shrink: 0;
+    }
+    .music-info {
+      flex: 1;
       overflow: hidden;
     }
-    .gauge-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--cyan-glow), var(--cyan-bright));
-      border-radius: 2px;
-    }
-
-    /* CENTER STAGE */
-    .center-stage {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      position: relative;
-    }
-    .greeting-header {
-      align-self: flex-start;
-      margin-top: 8px;
-    }
-    .greeting-header .subtext {
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-    .greeting-header h1 {
-      font-size: 32px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-top: 4px;
-    }
-    .greeting-header h1 span {
-      background: linear-gradient(135deg, var(--cyan-bright), #60A5FA);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    /* THE AURA ORB (UI-001) */
-    .orb-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      cursor: pointer;
-    }
-    .orb-outer-ring {
-      width: 260px;
-      height: 260px;
-      border-radius: 50%;
-      border: 1px solid rgba(6, 182, 212, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      box-shadow: 
-        0 0 60px rgba(6, 182, 212, 0.2),
-        inset 0 0 60px rgba(6, 182, 212, 0.1);
-      animation: pulse-ring 4s ease-in-out infinite;
-    }
-    @keyframes pulse-ring {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 60px rgba(6, 182, 212, 0.2); }
-      50% { transform: scale(1.03); box-shadow: 0 0 90px rgba(6, 182, 212, 0.35); }
-    }
-    .orb-core {
-      width: 180px;
-      height: 180px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, rgba(34, 211, 238, 0.35), rgba(15, 23, 42, 0.9) 70%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 0 30px rgba(6, 182, 212, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .orb-brand {
-      font-size: 20px;
-      letter-spacing: 0.35em;
+    .music-title {
+      font-size: 11.5px;
       font-weight: 700;
       color: #fff;
-      text-shadow: 0 0 12px var(--cyan-glow);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .orb-state-label {
-      font-size: 13px;
-      color: var(--cyan-bright);
-      margin-top: 6px;
-      opacity: 0.85;
-      letter-spacing: 0.05em;
+    .music-artist {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .waveform-canvas {
-      width: 140px;
-      height: 36px;
-      margin-top: 10px;
+    .music-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+    }
+    .music-btn {
+      background: transparent;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s;
+    }
+    .music-btn:hover {
+      color: #fff;
     }
 
-    /* INPUT BAR */
-    .input-bar {
+    /* -------------------------------------------------------------
+       RIGHT SIDEBAR
+       ------------------------------------------------------------- */
+    .right-sidebar {
+      width: 300px;
+      background: rgba(6, 12, 22, 0.65);
+      backdrop-filter: var(--glass-blur);
+      border-left: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      padding: 16px 14px;
+      gap: 14px;
+      overflow-y: auto;
+      z-index: 20;
+    }
+    .right-sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .right-sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    .glass-card {
+      background: rgba(13, 23, 40, 0.7);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      transition: border-color 0.2s;
+    }
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+    .card-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .card-title-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #FFFFFF;
+    }
+    .card-link-btn {
+      font-size: 11px;
+      color: var(--cyan-bright);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: opacity 0.2s;
+    }
+    .card-link-btn:hover {
+      opacity: 0.8;
+    }
+
+    /* Persona Card */
+    .persona-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .hologram-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius-md);
+      background: radial-gradient(circle at 40% 40%, rgba(34, 211, 238, 0.4), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan-bright);
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .hologram-scan {
+      position: absolute;
+      top: -100%;
+      left: 0;
       width: 100%;
-      max-width: 580px;
-      background: var(--surface-glass);
-      border: 1px solid var(--surface-border);
-      border-radius: 40px;
-      padding: 6px 14px;
+      height: 100%;
+      background: linear-gradient(180deg, transparent, rgba(34, 211, 238, 0.3), transparent);
+      animation: scanline 2.5s linear infinite;
+    }
+    @keyframes scanline {
+      0% { top: -100%; }
+      100% { top: 100%; }
+    }
+    .persona-details h3 {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #fff;
+    }
+    .persona-details p {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+    .persona-version {
+      font-size: 9.5px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Active Agents List */
+    .agent-row-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .agent-tile {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-md);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .agent-tile:hover {
+      background: rgba(15, 23, 42, 0.8);
+      border-color: rgba(34, 211, 238, 0.25);
+    }
+    .agent-tile-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .agent-icon-badge {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .agent-tile-info h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: #FFFFFF;
+    }
+    .agent-tile-info span {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .agent-caps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cap-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    /* System Health Metric Cards */
+    .health-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .health-metric-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 78px;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+    .metric-value-row {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #fff;
+      margin-top: 2px;
+    }
+    .sparkline-svg {
+      width: 100%;
+      height: 26px;
+      margin-top: auto;
+    }
+
+    /* -------------------------------------------------------------
+       CENTER STAGE & VIEW PANELS
+       ------------------------------------------------------------- */
+    .center-stage {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .center-stage::-webkit-scrollbar {
+      width: 6px;
+    }
+    .center-stage::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+    }
+
+    .view-panel {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .view-panel.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Top Greeting & Weather & Schedule Row */
+    .greeting-row {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1.3fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .greeting-card {
+      background: rgba(13, 23, 40, 0.65);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      backdrop-filter: blur(16px);
+    }
+    .greeting-heading {
+      font-size: 22px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .greeting-quote {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+    .widget-weather {
+      background: rgba(13, 23, 40, 0.65);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(16px);
+    }
+    .weather-left {
       display: flex;
       align-items: center;
       gap: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(20px);
-      transition: border 0.3s ease;
     }
-    .input-bar:focus-within {
+    .weather-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan-bright);
+    }
+    .weather-temp {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .weather-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .widget-schedule {
+      background: rgba(13, 23, 40, 0.65);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 12px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      backdrop-filter: blur(16px);
+    }
+    .schedule-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+    .schedule-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #FFFFFF;
+    }
+    .schedule-item-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .schedule-time {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* -------------------------------------------------------------
+       THE AURA CENTER SPHERE STAGE & FLOATING CALLOUTS
+       ------------------------------------------------------------- */
+    .aura-celestial-stage {
+      position: relative;
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0;
+    }
+
+    /* Concentric Rings Plane */
+    .concentric-rings-plane {
+      position: absolute;
+      width: 440px;
+      height: 120px;
+      border-radius: 50%;
+      bottom: 10px;
+      background: radial-gradient(ellipse at center, rgba(6, 182, 212, 0.25) 0%, rgba(6, 182, 212, 0.05) 50%, transparent 80%);
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      box-shadow: 0 0 50px rgba(6, 182, 212, 0.3), inset 0 0 30px rgba(6, 182, 212, 0.2);
+      transform: rotateX(65deg);
+      pointer-events: none;
+    }
+    .concentric-rings-plane::after {
+      content: '';
+      position: absolute;
+      inset: 20px;
+      border-radius: 50%;
+      border: 1px dashed rgba(34, 211, 238, 0.4);
+    }
+
+    /* Center Sphere */
+    .aura-sphere-orb {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      position: relative;
+      background: radial-gradient(circle at 35% 35%, rgba(34, 211, 238, 0.9) 0%, rgba(14, 165, 233, 0.6) 45%, rgba(6, 18, 38, 0.95) 85%);
+      box-shadow: 
+        0 0 60px rgba(6, 182, 212, 0.6),
+        0 0 120px rgba(6, 182, 212, 0.3),
+        inset 0 0 35px rgba(255, 255, 255, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .aura-sphere-orb:hover {
+      transform: scale(1.04);
+    }
+    .aura-sphere-orb.listening {
+      animation: sphere-pulse-listening 1.2s infinite alternate ease-in-out;
+    }
+    .aura-sphere-orb.speaking {
+      animation: sphere-pulse-speaking 1.4s infinite alternate ease-in-out;
+    }
+    @keyframes sphere-pulse-listening {
+      0% { box-shadow: 0 0 50px rgba(6, 182, 212, 0.6), inset 0 0 25px rgba(255, 255, 255, 0.6); transform: scale(1); }
+      100% { box-shadow: 0 0 100px rgba(34, 211, 238, 0.95), inset 0 0 45px rgba(255, 255, 255, 0.9); transform: scale(1.08); }
+    }
+    @keyframes sphere-pulse-speaking {
+      0% { box-shadow: 0 0 50px rgba(168, 85, 247, 0.6), inset 0 0 25px rgba(255, 255, 255, 0.6); transform: scale(1); }
+      100% { box-shadow: 0 0 100px rgba(192, 132, 252, 0.95), inset 0 0 45px rgba(255, 255, 255, 0.9); transform: scale(1.07); }
+    }
+
+    .aura-inner-brand {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 0.35em;
+      color: #FFFFFF;
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.9);
+    }
+    .aura-inner-status {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+      margin-top: 4px;
+      text-shadow: 0 0 8px var(--cyan-glow);
+    }
+    .sphere-canvas {
+      width: 100px;
+      height: 22px;
+      margin-top: 4px;
+    }
+
+    /* 4 Floating Glass Callouts */
+    .floating-callout {
+      position: absolute;
+      background: rgba(13, 23, 40, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      max-width: 260px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      z-index: 5;
+    }
+    .floating-callout:hover {
       border-color: var(--cyan-bright);
-      box-shadow: 0 0 24px rgba(6, 182, 212, 0.3);
+      box-shadow: 0 0 24px rgba(6, 182, 212, 0.35);
+      transform: translateY(-3px);
+      background: rgba(13, 23, 40, 0.88);
     }
-    .input-field {
+    .floating-callout.top-left {
+      top: 15px;
+      left: 10%;
+    }
+    .floating-callout.bottom-left {
+      bottom: 25px;
+      left: 12%;
+    }
+    .floating-callout.top-right {
+      top: 15px;
+      right: 10%;
+    }
+    .floating-callout.bottom-right {
+      bottom: 25px;
+      right: 12%;
+    }
+    .callout-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan-bright);
+      flex-shrink: 0;
+    }
+    .callout-text {
+      font-size: 11px;
+      color: #E2E8F0;
+      line-height: 1.35;
+      font-weight: 500;
+    }
+
+    /* Quick Action Pills Row */
+    .quick-actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .quick-action-pill {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-full);
+      padding: 7px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      transition: all 0.2s;
+    }
+    .quick-action-pill:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #FFFFFF;
+      border-color: rgba(34, 211, 238, 0.35);
+      box-shadow: 0 0 14px rgba(6, 182, 212, 0.2);
+    }
+
+    /* Main Ambient Input Bar */
+    .ambient-input-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .ambient-input-bar {
+      width: 100%;
+      height: 52px;
+      background: rgba(13, 23, 40, 0.7);
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      padding: 0 8px 0 20px;
+      gap: 12px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 0 30px rgba(6, 182, 212, 0.18), inset 0 0 15px rgba(6, 182, 212, 0.08);
+      transition: all 0.25s ease;
+    }
+    .ambient-input-bar:focus-within {
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 45px rgba(6, 182, 212, 0.4), inset 0 0 20px rgba(6, 182, 212, 0.15);
+      background: rgba(13, 23, 40, 0.9);
+    }
+    .ambient-chevron {
+      color: var(--cyan-bright);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .ambient-input-field {
+      flex: 1;
+      height: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 14px;
+      color: #FFFFFF;
+    }
+    .ambient-input-field::placeholder {
+      color: var(--text-muted);
+    }
+    .ambient-mic-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284C7, #06B6D4);
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.5);
+      transition: transform 0.2s, box-shadow 0.2s;
+      flex-shrink: 0;
+    }
+    .ambient-mic-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 22px rgba(6, 182, 212, 0.85);
+    }
+    .ambient-mic-btn.recording {
+      background: linear-gradient(135deg, #DC2626, #EF4444) !important;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.9) !important;
+      animation: mic-pulse 1s infinite alternate;
+    }
+    @keyframes mic-pulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.15); }
+    }
+
+    /* Prompt Suggestions Row */
+    .prompt-chips-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .prompt-chip {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-full);
+      padding: 6px 14px;
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .prompt-chip:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border-color: rgba(34, 211, 238, 0.3);
+    }
+
+    /* -------------------------------------------------------------
+       BOTTOM 3-CARD GRID (RECENT FILES, QUICK APPS, AUTOMATIONS)
+       ------------------------------------------------------------- */
+    .bottom-cards-row {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1.1fr;
+      gap: 14px;
+      margin-top: 4px;
+    }
+
+    /* Recent Files Card */
+    .recent-file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .recent-file-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .file-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .file-badge-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .file-meta-col h5 {
+      font-size: 12px;
+      font-weight: 600;
+      color: #FFFFFF;
+    }
+    .file-meta-col span {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .file-time {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* Quick Apps Grid */
+    .quick-apps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .app-icon-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 4px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .app-icon-item:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .app-icon-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .app-label {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    /* Automations Card */
+    .automation-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      transition: background 0.15s;
+    }
+    .automation-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .automation-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .auto-icon-badge {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .auto-info h5 {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .auto-info span {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    /* Modern Toggle Switch */
+    .switch-toggle {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .switch-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .switch-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255, 255, 255, 0.15);
+      transition: .25s;
+      border-radius: 20px;
+    }
+    .switch-slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s;
+      border-radius: 50%;
+    }
+    .switch-toggle input:checked + .switch-slider {
+      background-color: var(--cyan-bright);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+    }
+    .switch-toggle input:checked + .switch-slider:before {
+      transform: translateX(16px);
+    }
+
+    /* -------------------------------------------------------------
+       FULL VIEW PANELS (FILES, TERMINAL, SETTINGS, ETC.)
+       ------------------------------------------------------------- */
+    .view-card {
+      background: rgba(13, 23, 40, 0.75);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      backdrop-filter: blur(20px);
+    }
+
+    /* Terminal View */
+    .terminal-container {
+      background: #040810;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      height: 520px;
+      overflow: hidden;
+    }
+    .terminal-header {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .terminal-screen {
+      flex: 1;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #E2E8F0;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+    .terminal-input-bar {
+      display: flex;
+      align-items: center;
+      padding: 8px 14px;
+      background: rgba(0, 0, 0, 0.5);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .terminal-input {
       flex: 1;
       background: transparent;
       border: none;
       outline: none;
       color: #fff;
-      font-size: 15px;
-      font-family: inherit;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      margin-left: 8px;
     }
-    .input-field::placeholder {
-      color: rgba(255, 255, 255, 0.3);
+
+    /* Files View */
+    .files-explorer {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .mic-button {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--cyan-glow), #2563EB);
+    .files-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .files-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .files-table th {
+      text-align: left;
+      padding: 8px 12px;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 11px;
+    }
+    .files-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .files-table tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+    }
+
+    /* Settings View */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .settings-group {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .setting-label h5 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .setting-label span {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .setting-input {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+    }
+    .setting-input:focus {
+      border-color: var(--cyan-bright);
+    }
+    .btn-action {
+      background: linear-gradient(135deg, #0284C7, #06B6D4);
       border: none;
       color: #fff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 16px rgba(6, 182, 212, 0.4);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .mic-button:hover {
-      transform: scale(1.08);
-      box-shadow: 0 0 24px var(--cyan-glow);
-    }
-
-    /* PROMPT SUGGESTIONS */
-    .prompt-suggestions {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .prompt-chip {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 6px 12px;
-      border-radius: 20px;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
       font-size: 12px;
-      color: var(--text-muted);
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .prompt-chip:hover {
-      background: rgba(6, 182, 212, 0.15);
-      color: #fff;
-      border-color: rgba(6, 182, 212, 0.3);
-    }
-
-    /* RIGHT SIDEBAR */
-    .right-sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      overflow-y: auto;
-    }
-    .card-panel {
-      background: var(--surface-glass);
-      border: 1px solid var(--surface-border);
-      border-radius: 20px;
-      padding: 18px;
-      backdrop-filter: blur(16px);
-    }
-    .card-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      letter-spacing: 0.1em;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      margin-bottom: 14px;
-    }
-    .agent-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.03);
-      margin-bottom: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      transition: all 0.2s ease;
-    }
-    .agent-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: rgba(6, 182, 212, 0.2);
-      border: 1px solid var(--cyan-glow);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-    }
-    .agent-info {
-      flex: 1;
-    }
-    .agent-name {
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .agent-task {
-      font-size: 11px;
-      color: var(--text-muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 140px;
-    }
-    .agent-status-badge {
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-weight: 600;
-    }
-    .badge-idle { background: rgba(100, 116, 139, 0.2); color: #94A3B8; }
-    .badge-executing { background: rgba(6, 182, 212, 0.25); color: var(--cyan-bright); box-shadow: 0 0 8px rgba(6, 182, 212, 0.3); }
-    .badge-done { background: rgba(16, 185, 129, 0.2); color: #34D399; }
-
-    /* TASK LIST */
-    .task-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .task-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    .task-check {
-      width: 16px;
-      height: 16px;
-      border-radius: 4px;
-      border: 1px solid var(--surface-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
       transition: all 0.2s;
     }
-    .task-check.checked {
-      background: var(--cyan-glow);
-      border-color: var(--cyan-glow);
+    .btn-action:hover {
+      box-shadow: 0 0 14px rgba(6, 182, 212, 0.5);
     }
-    .task-check.checked::after {
-      content: '✓';
-      font-size: 11px;
-      color: #030712;
-      font-weight: bold;
-    }
-
-    /* SPATIAL RETICLE (UI-021) */
-    #spatial-reticle {
-      position: absolute;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 2px solid var(--cyan-bright);
-      box-shadow: 0 0 14px var(--cyan-glow), inset 0 0 8px var(--cyan-glow);
-      pointer-events: none;
-      z-index: 9999;
-      transform: translate(-50%, -50%);
-      transition: transform 0.04s ease-out, opacity 0.2s;
-      opacity: 0.85;
-    }
-    #spatial-reticle::after {
-      content: '';
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: #fff;
-      border-radius: 50%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 8px #fff;
-    }
-
-    /* DOCK */
-    .bottom-dock {
-      height: 64px;
-      align-self: center;
-      background: var(--surface-glass);
-      border: 1px solid var(--surface-border);
-      border-radius: 24px;
-      padding: 0 20px;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      margin-bottom: 12px;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    .dock-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
       cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .dock-icon:hover {
-      transform: translateY(-6px) scale(1.1);
-      background: rgba(6, 182, 212, 0.2);
-      border-color: var(--cyan-glow);
-      box-shadow: 0 6px 16px rgba(6, 182, 212, 0.3);
     }
   </style>
 </head>
 <body>
-  <div class="bg-overlay"></div>
 
-  <!-- Spatial Reticle (UI-021) simulating 3D raycast target -->
-  <div id="spatial-reticle"></div>
-
-  <div class="app-container">
-    <!-- Top Bar -->
-    <header class="top-bar">
-      <div class="brand">
-        <div class="logo-icon"></div>
-        <span>A U R A &nbsp;O S</span>
+  <!-- =============================================================
+       1. TOP APP BAR
+       ============================================================= -->
+  <header class="top-bar">
+    <div class="brand-section" onclick="switchView('home')">
+      <div class="brand-logo-orb"></div>
+      <div class="brand-titles">
+        <span class="brand-name">A U R A  O S</span>
+        <span class="brand-subtitle">YOUR INTELLIGENT OPERATING ENVIRONMENT</span>
       </div>
-      <div class="tagline">A MORE CAPABLE YOU</div>
-      <div class="telemetry">
-        <span>⚡ Connected</span>
-        <span>📡 5G Active</span>
-        <span id="clock-display">10:24 PM</span>
+    </div>
+
+    <form class="top-search-bar" id="top-search-form">
+      <svg class="top-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" class="top-search-input" id="top-search-input" placeholder='Ask AURA anything... (e.g. "prepare for my CN exam")' autocomplete="off">
+      <button type="button" class="top-search-mic" id="top-mic-btn" title="Voice Input">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+      </button>
+    </form>
+
+    <div class="top-right-group">
+      <div class="top-indicators">
+        <button type="button" class="top-indicator-btn" title="Notifications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </button>
+        <button type="button" class="top-indicator-btn" title="Wi-Fi Connected">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        </button>
+        <button type="button" class="top-indicator-btn" title="Bluetooth Active">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg>
+        </button>
+        <button type="button" class="top-indicator-btn" title="Display Brightness">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </button>
       </div>
-    </header>
 
-    <!-- Workspace Grid -->
-    <main class="workspace">
-      <!-- Left Sidebar -->
-      <aside class="sidebar">
-        <nav class="nav-list">
-          <div class="nav-item active">🏠 Home</div>
-          <div class="nav-item">🤖 Agents</div>
-          <div class="nav-item">📁 Files</div>
-          <div class="nav-item">📦 Apps</div>
-          <div class="nav-item">💻 Terminal</div>
-          <div class="nav-item">🌐 Browser</div>
-          <div class="nav-item">🔬 Research</div>
-          <div class="nav-item">⚙️ Settings</div>
-        </nav>
+      <div class="top-clock-group">
+        <div class="top-time" id="clock-time">01:08 AM</div>
+        <div class="top-date" id="clock-date">Fri, 10 Oct 2026</div>
+      </div>
 
-        <div class="sys-gauges">
-          <div style="font-size: 11px; letter-spacing: 0.1em; color: var(--text-muted); text-transform: uppercase;">System Telemetry</div>
-          <div>
-            <div class="gauge-row"><span>CPU Load</span><span>12%</span></div>
-            <div class="gauge-bar"><div class="gauge-fill" style="width: 12%;"></div></div>
-          </div>
-          <div>
-            <div class="gauge-row"><span>RAM Used</span><span>46%</span></div>
-            <div class="gauge-bar"><div class="gauge-fill" style="width: 46%;"></div></div>
-          </div>
-          <div>
-            <div class="gauge-row"><span>Storage</span><span>38%</span></div>
-            <div class="gauge-bar"><div class="gauge-fill" style="width: 38%;"></div></div>
-          </div>
+      <div class="user-avatar" title="Aryan (Logged in)">A</div>
+    </div>
+  </header>
+
+  <!-- =============================================================
+       2. MAIN WORKSPACE CONTAINER
+       ============================================================= -->
+  <main class="main-workspace">
+
+    <!-- -------------------------------------------------------------
+         LEFT NAVIGATION SIDEBAR (12 APPS + WORKSPACES + MUSIC)
+         ------------------------------------------------------------- -->
+    <aside class="left-sidebar">
+      <ul class="nav-list">
+        <li class="nav-item active" data-view="home" onclick="switchView('home')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Home</span>
+        </li>
+        <li class="nav-item" data-view="agents" onclick="switchView('agents')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="12" x="3" y="8" rx="2"/><path d="M12 2v6"/><circle cx="12" cy="2" r="1.5"/><circle cx="9" cy="14" r="1.5" fill="currentColor"/><circle cx="15" cy="14" r="1.5" fill="currentColor"/><path d="M9 18h6"/></svg>
+          <span>Agents</span>
+        </li>
+        <li class="nav-item" data-view="files" onclick="switchView('files')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+          <span>Files</span>
+        </li>
+        <li class="nav-item" data-view="applications" onclick="switchView('applications')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+          <span>Applications</span>
+        </li>
+        <li class="nav-item" data-view="terminal" onclick="switchView('terminal')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+          <span>Terminal</span>
+        </li>
+        <li class="nav-item" data-view="browser" onclick="switchView('browser')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span>Browser</span>
+        </li>
+        <li class="nav-item" data-view="notebook" onclick="switchView('notebook')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+          <span>Notebook</span>
+        </li>
+        <li class="nav-item" data-view="automation" onclick="switchView('automation')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/></svg>
+          <span>Automation</span>
+        </li>
+        <li class="nav-item" data-view="smarthome" onclick="switchView('smarthome')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+          <span>Smart Home</span>
+        </li>
+        <li class="nav-item" data-view="system" onclick="switchView('system')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          <span>System</span>
+        </li>
+        <li class="nav-item" data-view="research" onclick="switchView('research')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31"/><path d="M14 2v7.31"/><path d="M8.5 2h7"/><path d="M14 9.3 18.9 18A2 2 0 0 1 17.15 21H6.85a2 2 0 0 1-1.75-3L10 9.3"/><path d="M7 16h10"/></svg>
+          <span>Research</span>
+        </li>
+        <li class="nav-item" data-view="settings" onclick="switchView('settings')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Settings</span>
+        </li>
+      </ul>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section-header">
+        <span>Workspaces</span>
+        <button type="button" class="sidebar-add-btn" title="Add Workspace" onclick="addWorkspace()">+</button>
+      </div>
+
+      <ul class="workspace-list">
+        <li class="workspace-item" onclick="switchView('files')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <span>Development</span>
+        </li>
+        <li class="workspace-item" onclick="switchView('files')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
+          <span>College</span>
+        </li>
+        <li class="workspace-item" onclick="switchView('research')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31"/><path d="M14 2v7.31"/><path d="M8.5 2h7"/><path d="M14 9.3 18.9 18A2 2 0 0 1 17.15 21H6.85a2 2 0 0 1-1.75-3L10 9.3"/></svg>
+          <span>Research</span>
+        </li>
+        <li class="workspace-item" onclick="switchView('home')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Personal</span>
+        </li>
+        <li class="workspace-item" onclick="switchView('applications')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><rect width="20" height="12" x="2" y="6" rx="6"/></svg>
+          <span>Entertainment</span>
+        </li>
+      </ul>
+
+      <!-- Bottom Music Player Widget -->
+      <div class="sidebar-music-card">
+        <div class="music-art">♪</div>
+        <div class="music-info">
+          <div class="music-title" id="music-title-text">Blinding Lights</div>
+          <div class="music-artist">The Weeknd</div>
         </div>
-      </aside>
-
-      <!-- Center Stage: Orb & Voice Input -->
-      <section class="center-stage">
-        <div class="greeting-header">
-          <div class="subtext">Good Evening</div>
-          <h1>Let's build something <span>extraordinary.</span></h1>
+        <div class="music-controls">
+          <button class="music-btn" title="Previous Track" onclick="toggleMusic(false)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="3"/></svg>
+          </button>
+          <button class="music-btn" id="music-play-btn" title="Play/Pause" onclick="toggleMusic(true)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+          <button class="music-btn" title="Next Track" onclick="toggleMusic(false)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"/></svg>
+          </button>
         </div>
+      </div>
+    </aside>
 
-        <!-- The AURA Orb (UI-001) -->
-        <div class="orb-container" id="aura-orb">
-          <div class="orb-outer-ring">
-            <div class="orb-core">
-              <div class="orb-brand">A U R A</div>
-              <div class="orb-state-label" id="orb-status">Listening...</div>
-              <canvas class="waveform-canvas" id="waveform"></canvas>
+    <!-- -------------------------------------------------------------
+       CENTER STAGE CONTENT
+       ------------------------------------------------------------- -->
+    <section class="center-stage">
+
+      <!-- ================= 1. HOME VIEW PANEL ================= -->
+      <div class="view-panel active" id="view-home">
+
+        <!-- Top Greeting + Weather + Schedule Row -->
+        <div class="greeting-row">
+          <div class="greeting-card">
+            <h2 class="greeting-heading">Good Evening, Aryan 👋</h2>
+            <div class="greeting-quote">
+              <span style="color: var(--cyan-bright); font-size: 16px;">•</span>
+              <span>"Discipline today, freedom tomorrow."</span>
+            </div>
+          </div>
+
+          <div class="widget-weather">
+            <div class="weather-left">
+              <div class="weather-icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><line x1="8" y1="19" x2="6" y2="22"/><line x1="12" y1="19" x2="10" y2="22"/><line x1="16" y1="19" x2="14" y2="22"/></svg>
+              </div>
+              <div>
+                <div class="weather-meta">Chandigarh</div>
+                <div class="weather-temp">22°C <span style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">Haze</span></div>
+              </div>
+            </div>
+            <div class="weather-meta" style="text-align: right;">
+              <div>H: 28°</div>
+              <div>L: 18°</div>
+            </div>
+          </div>
+
+          <div class="widget-schedule">
+            <div class="schedule-header">
+              <span style="color: #fff; display: flex; align-items: center; gap: 6px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Fri, 10 Oct
+              </span>
+              <span style="cursor: pointer; color: var(--cyan-bright);" onclick="switchView('applications')">Calendar</span>
+            </div>
+            <div class="schedule-item">
+              <div class="schedule-item-left">
+                <span style="color: var(--amber-accent);">•</span>
+                <span>CN Revision</span>
+              </div>
+              <span class="schedule-time">1:00 AM - 2:00 AM</span>
+            </div>
+            <div class="schedule-item">
+              <div class="schedule-item-left">
+                <span style="color: var(--cyan-bright);">•</span>
+                <span>Gym</span>
+              </div>
+              <span class="schedule-time">6:00 AM - 7:30 AM</span>
+            </div>
+            <div class="schedule-item">
+              <div class="schedule-item-left">
+                <span style="color: var(--purple-accent);">•</span>
+                <span>DSA Practice</span>
+              </div>
+              <span class="schedule-time">5:00 PM - 7:00 PM</span>
             </div>
           </div>
         </div>
 
-        <!-- Prompt suggestions & Input bar -->
-        <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-          <div class="prompt-suggestions">
-            <div class="prompt-chip" data-prompt="create a folder called DemoProject on my Desktop">“Create DemoProject on Desktop”</div>
-            <div class="prompt-chip" data-prompt="write file test.txt with content Hello Aura OS">“Write test.txt”</div>
-            <div class="prompt-chip" data-prompt="run command uname -a">“System Info”</div>
+        <!-- The AURA Center Sphere & Orbiting Floating Callouts -->
+        <div class="aura-celestial-stage">
+          <!-- 3D concentric ground plane -->
+          <div class="concentric-rings-plane"></div>
+
+          <!-- Top-Left Callout -->
+          <div class="floating-callout top-left" onclick="submitGoal('Prepare my development environment for Rein repository')">
+            <div class="callout-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <div class="callout-text">"Prepare my development environment for Rein repository"</div>
           </div>
 
-          <form class="input-bar" id="goal-form">
-            <span style="opacity: 0.5; margin-left: 6px;">⌨️</span>
-            <input type="text" class="input-field" id="goal-input" placeholder="You speak. AURA acts. Type your goal or press Enter..." autocomplete="off">
-            <button type="button" class="mic-button" id="mic-trigger" title="Voice Input">
-              🎙️
+          <!-- Bottom-Left Callout -->
+          <div class="floating-callout bottom-left" onclick="submitGoal('Plan my day tomorrow based on my classes and goals')">
+            <div class="callout-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </div>
+            <div class="callout-text">"Plan my day tomorrow based on my classes and goals"</div>
+          </div>
+
+          <!-- Center Sphere Orb -->
+          <div class="aura-sphere-orb" id="aura-orb" title="Click to toggle Voice Listening / Emergency Pause">
+            <div class="aura-inner-brand">A U R A</div>
+            <div class="aura-inner-status" id="orb-status">Standby</div>
+            <canvas class="sphere-canvas" id="waveform"></canvas>
+          </div>
+
+          <!-- Top-Right Callout -->
+          <div class="floating-callout top-right" onclick="submitGoal('Turn on study mode in my room')">
+            <div class="callout-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            </div>
+            <div class="callout-text">"Turn on study mode in my room"</div>
+          </div>
+
+          <!-- Bottom-Right Callout -->
+          <div class="floating-callout bottom-right" onclick="submitGoal('Research latest papers on agentic AI')">
+            <div class="callout-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+            <div class="callout-text">"Research latest papers on agentic AI"</div>
+          </div>
+        </div>
+
+        <!-- Quick Action Pills Row -->
+        <div class="quick-actions-row">
+          <div class="quick-action-pill" onclick="submitGoal('create a project called NewApp on my Desktop')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span>Create Project</span>
+          </div>
+          <div class="quick-action-pill" onclick="switchView('notebook')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+            <span>Write Notes</span>
+          </div>
+          <div class="quick-action-pill" onclick="submitGoal('analyze system performance and active agents')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Analyze</span>
+          </div>
+          <div class="quick-action-pill" onclick="switchView('automation')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+            <span>Automate</span>
+          </div>
+          <div class="quick-action-pill" onclick="switchView('smarthome')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <span>Smart Home</span>
+          </div>
+        </div>
+
+        <!-- Main Ambient Input Bar -->
+        <div class="ambient-input-container">
+          <form class="ambient-input-bar" id="main-goal-form">
+            <span class="ambient-chevron">&gt;_</span>
+            <input type="text" class="ambient-input-field" id="main-goal-input" placeholder="You speak. AURA acts. Type your goal or press Enter..." autocomplete="off">
+            <button type="button" class="ambient-mic-btn" id="ambient-mic-btn" title="Voice Input (Microphone Toggle)">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
             </button>
           </form>
-        </div>
-      </section>
 
-      <!-- Right Sidebar: Active Agents & Tasks -->
-      <aside class="right-sidebar">
-        <!-- Active Agents Card -->
-        <div class="card-panel">
-          <div class="card-title">
-            <span>Active Agents</span>
-            <span style="color: var(--cyan-bright); cursor: pointer;">Live</span>
-          </div>
-          <div id="agent-list-container">
-            <!-- Dynamically populated -->
+          <!-- Prompt Suggestions Chips -->
+          <div class="prompt-chips-row">
+            <div class="prompt-chip" onclick="submitGoal('summarize CN_Notes.pdf in my Notes folder')">Summarize this PDF</div>
+            <div class="prompt-chip" onclick="submitGoal('debug code in current workspace')">Debug my code</div>
+            <div class="prompt-chip" onclick="submitGoal('open VS Code with current project')">Open VS Code</div>
+            <div class="prompt-chip" onclick="toggleMusic(true)">Play lo-fi music</div>
+            <div class="prompt-chip" onclick="toggleAutomation('focus')">Turn on focus mode</div>
           </div>
         </div>
 
-        <!-- Today Checklist -->
-        <div class="card-panel">
-          <div class="card-title">
-            <span>Today's Tasks</span>
-            <span style="font-size: 11px;">4 Tasks</span>
+        <!-- Bottom 3-Card Grid -->
+        <div class="bottom-cards-row">
+
+          <!-- Card 1: RECENT FILES -->
+          <div class="glass-card">
+            <div class="card-header-row">
+              <div class="card-title-badge">Recent Files</div>
+              <button class="card-link-btn" onclick="switchView('files')">View All →</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;" id="home-recent-files-container">
+              <div class="recent-file-item" onclick="openFileDoc('rein-driver.ts')">
+                <div class="file-item-left">
+                  <div class="file-badge-icon" style="background: rgba(59, 130, 246, 0.2); color: #60A5FA;">TS</div>
+                  <div class="file-meta-col">
+                    <h5>rein-driver.ts</h5>
+                    <span>~/Projects/Rein</span>
+                  </div>
+                </div>
+                <span class="file-time">2 mins ago</span>
+              </div>
+              <div class="recent-file-item" onclick="openFileDoc('AURA_Architecture.md')">
+                <div class="file-item-left">
+                  <div class="file-badge-icon" style="background: rgba(34, 211, 238, 0.2); color: #22D3EE;">MD</div>
+                  <div class="file-meta-col">
+                    <h5>AURA_Architecture.md</h5>
+                    <span>~/Projects/AURA</span>
+                  </div>
+                </div>
+                <span class="file-time">23 mins ago</span>
+              </div>
+              <div class="recent-file-item" onclick="openFileDoc('CN_Notes.pdf')">
+                <div class="file-item-left">
+                  <div class="file-badge-icon" style="background: rgba(239, 68, 68, 0.2); color: #F87171;">PDF</div>
+                  <div class="file-meta-col">
+                    <h5>CN_Notes.pdf</h5>
+                    <span>~/Notes/Sem3</span>
+                  </div>
+                </div>
+                <span class="file-time">1 hour ago</span>
+              </div>
+              <div class="recent-file-item" onclick="openFileDoc('daily_plan.txt')">
+                <div class="file-item-left">
+                  <div class="file-badge-icon" style="background: rgba(168, 85, 247, 0.2); color: #C084FC;">TXT</div>
+                  <div class="file-meta-col">
+                    <h5>daily_plan.txt</h5>
+                    <span>~/Personal</span>
+                  </div>
+                </div>
+                <span class="file-time">3 hours ago</span>
+              </div>
+            </div>
           </div>
-          <div class="task-list">
-            <div class="task-item">
-              <div class="task-check checked"></div>
-              <span>Bootstrap AURA Core Daemon</span>
+
+          <!-- Card 2: QUICK APPS -->
+          <div class="glass-card">
+            <div class="card-header-row">
+              <div class="card-title-badge">Quick Apps</div>
+              <button class="card-link-btn" onclick="switchView('applications')">Customize →</button>
             </div>
-            <div class="task-item">
-              <div class="task-check checked"></div>
-              <span>Voice & Gesture Engine Spec</span>
+            <div class="quick-apps-grid">
+              <div class="app-icon-item" onclick="launchApp('VS Code')">
+                <div class="app-icon-badge" style="background: linear-gradient(135deg, #1E3A8A, #2563EB);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </div>
+                <span class="app-label">VS Code</span>
+              </div>
+              <div class="app-icon-item" onclick="launchApp('Chrome')">
+                <div class="app-icon-badge" style="background: linear-gradient(135deg, #B91C1C, #F59E0B);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+                </div>
+                <span class="app-label">Chrome</span>
+              </div>
+              <div class="app-icon-item" onclick="switchView('terminal')">
+                <div class="app-icon-badge" style="background: linear-gradient(135deg, #0F172A, #334155);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                </div>
+                <span class="app-label">Terminal</span>
+              </div>
+              <div class="app-icon-item" onclick="launchApp('Notion')">
+                <div class="app-icon-badge" style="background: linear-gradient(135deg, #18181B, #27272A);">
+                  <span style="font-weight: 800; font-size: 18px; color: #fff;">N</span>
+                </div>
+                <span class="app-label">Notion</span>
+              </div>
+              <div class="app-icon-item" onclick="launchApp('Obsidian')">
+                <div class="app-icon-badge" style="background: linear-gradient(135deg, #581C87, #7E22CE);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E9D5FF" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polygon points="2 17 12 22 22 17 12 12 2 17"/></svg>
+                </div>
+                <span class="app-label">Obsidian</span>
+              </div>
+              <div class="app-icon-item" onclick="launchApp('Discord')">
+                <div class="app-icon-badge" style="background: linear-gradient(135deg, #3730A3, #4F46E5);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M7.5 7.5c3.5-1 5.5-1 9 0"/><path d="M7 16.5c3 1.5 7 1.5 10 0"/></svg>
+                </div>
+                <span class="app-label">Discord</span>
+              </div>
+              <div class="app-icon-item" onclick="toggleMusic(true)">
+                <div class="app-icon-badge" style="background: linear-gradient(135deg, #065F46, #10B981);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12a8 8 0 0 1 8 0"/><path d="M9 15a6 6 0 0 1 6 0"/></svg>
+                </div>
+                <span class="app-label">Spotify</span>
+              </div>
+              <div class="app-icon-item" onclick="launchApp('Figma')">
+                <div class="app-icon-badge" style="background: linear-gradient(135deg, #991B1B, #C2410C);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M5 5.5A3.5 3.5 0 0 1 8.5 2H12v7H8.5A3.5 3.5 0 0 1 5 5.5z"/><path d="M12 2h3.5a3.5 3.5 0 1 1 0 7H12V2z"/><path d="M12 12.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0z"/><path d="M5 19.5A3.5 3.5 0 0 1 8.5 16H12v3.5a3.5 3.5 0 1 1-7 0z"/></svg>
+                </div>
+                <span class="app-label">Figma</span>
+              </div>
             </div>
-            <div class="task-item">
-              <div class="task-check checked"></div>
-              <span>Multi-Agent Task Scheduling</span>
+          </div>
+
+          <!-- Card 3: AUTOMATIONS -->
+          <div class="glass-card">
+            <div class="card-header-row">
+              <div class="card-title-badge">Automations</div>
+              <button class="card-link-btn" onclick="switchView('automation')">View All →</button>
             </div>
-            <div class="task-item">
-              <div class="task-check"></div>
-              <span>Boot ARM64 Ubuntu VM in UTM</span>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div class="automation-item">
+                <div class="automation-item-left">
+                  <div class="auto-icon-badge" style="background: rgba(59, 130, 246, 0.2); color: #60A5FA;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
+                  </div>
+                  <div class="auto-info">
+                    <h5>Study Mode</h5>
+                    <span>Lights, Do Not Disturb, Open Notes</span>
+                  </div>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" checked onchange="toggleAutomation('study', this.checked)">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div class="automation-item">
+                <div class="automation-item-left">
+                  <div class="auto-icon-badge" style="background: rgba(168, 85, 247, 0.2); color: #C084FC;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                  </div>
+                  <div class="auto-info">
+                    <h5>Sleep Mode</h5>
+                    <span>Turn off lights, close apps</span>
+                  </div>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" onchange="toggleAutomation('sleep', this.checked)">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div class="automation-item">
+                <div class="automation-item-left">
+                  <div class="auto-icon-badge" style="background: rgba(245, 158, 11, 0.2); color: #FBBF24;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </div>
+                  <div class="auto-info">
+                    <h5>Gym Mode</h5>
+                    <span>Play workout playlist</span>
+                  </div>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" checked onchange="toggleAutomation('gym', this.checked)">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div class="automation-item">
+                <div class="automation-item-left">
+                  <div class="auto-icon-badge" style="background: rgba(16, 185, 129, 0.2); color: #34D399;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+                  </div>
+                  <div class="auto-info">
+                    <h5>Focus Mode</h5>
+                    <span>Block distractions</span>
+                  </div>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" checked onchange="toggleAutomation('focus', this.checked)">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ================= 2. AGENTS VIEW PANEL ================= -->
+      <div class="view-panel" id="view-agents">
+        <div class="view-card">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">AURA Specialized Agent Fleet</h2>
+            <button class="btn-action" onclick="submitGoal('trigger autonomous fleet coordination')">Dispatch Mission</button>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 16px;">
+            Autonomous multi-agent architecture running isolated tasks with Bubblewrap namespace sandboxing.
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;" id="agents-full-grid"></div>
+        </div>
+      </div>
+
+      <!-- ================= 3. FILES VIEW PANEL ================= -->
+      <div class="view-panel" id="view-files">
+        <div class="view-card files-explorer">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">Filesystem Explorer</h2>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-secondary" id="files-up-btn">↑ Parent</button>
+              <button class="btn-action" onclick="submitGoal('create a folder called NewFolder on my Desktop')">+ New Folder</button>
+            </div>
+          </div>
+          <div class="files-toolbar">
+            <span>Path: <strong id="files-current-path" style="color: var(--cyan-bright);">/</strong></span>
+          </div>
+          <table class="files-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Modified</th>
+              </tr>
+            </thead>
+            <tbody id="files-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ================= 4. APPLICATIONS VIEW PANEL ================= -->
+      <div class="view-panel" id="view-applications">
+        <div class="view-card">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">Applications & Capabilities</h2>
+            <span style="font-size: 11px; color: var(--text-muted);">8 Native Apps</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-top: 10px;">
+            <div class="glass-card" style="text-align: center; cursor: pointer;" onclick="launchApp('VS Code')">
+              <div class="app-icon-badge" style="width: 48px; height: 48px; margin: 0 auto 10px; background: linear-gradient(135deg, #1E3A8A, #2563EB);">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <h4 style="font-size: 13px; font-weight: 700;">Visual Studio Code</h4>
+              <p style="font-size: 10.5px; color: var(--text-muted); margin-top: 4px;">IDE & Code Synthesis</p>
+            </div>
+            <div class="glass-card" style="text-align: center; cursor: pointer;" onclick="switchView('terminal')">
+              <div class="app-icon-badge" style="width: 48px; height: 48px; margin: 0 auto 10px; background: linear-gradient(135deg, #0F172A, #334155);">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              </div>
+              <h4 style="font-size: 13px; font-weight: 700;">Terminal</h4>
+              <p style="font-size: 10.5px; color: var(--text-muted); margin-top: 4px;">Sandboxed Shell</p>
+            </div>
+            <div class="glass-card" style="text-align: center; cursor: pointer;" onclick="switchView('browser')">
+              <div class="app-icon-badge" style="width: 48px; height: 48px; margin: 0 auto 10px; background: linear-gradient(135deg, #B91C1C, #F59E0B);">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+              </div>
+              <h4 style="font-size: 13px; font-weight: 700;">Browser</h4>
+              <p style="font-size: 10.5px; color: var(--text-muted); margin-top: 4px;">Research & Web</p>
+            </div>
+            <div class="glass-card" style="text-align: center; cursor: pointer;" onclick="switchView('notebook')">
+              <div class="app-icon-badge" style="width: 48px; height: 48px; margin: 0 auto 10px; background: linear-gradient(135deg, #581C87, #7E22CE);">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#E9D5FF" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/></svg>
+              </div>
+              <h4 style="font-size: 13px; font-weight: 700;">Notebook</h4>
+              <p style="font-size: 10.5px; color: var(--text-muted); margin-top: 4px;">Markdown Notes</p>
             </div>
           </div>
         </div>
-      </aside>
-    </main>
+      </div>
 
-    <!-- Bottom Dock -->
-    <footer class="bottom-dock">
-      <div class="dock-icon" title="Files">📁</div>
-      <div class="dock-icon" title="Code Editor">💻</div>
-      <div class="dock-icon" title="Terminal">⌨️</div>
-      <div class="dock-icon" title="Web Browser">🌐</div>
-      <div class="dock-icon" title="Audio">🎵</div>
-      <div class="dock-icon" title="Notes">📝</div>
-      <div class="dock-icon" style="border-radius: 50%;" title="New Task">➕</div>
-    </footer>
-  </div>
+      <!-- ================= 5. TERMINAL VIEW PANEL ================= -->
+      <div class="view-panel" id="view-terminal">
+        <div class="terminal-container">
+          <div class="terminal-header">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--cyan-bright);">aurad@aura-os: ~ [ARM64 Sandboxed Shell]</span>
+            <button class="btn-secondary" style="padding: 2px 8px; font-size: 10px;" onclick="clearTerminal()">Clear</button>
+          </div>
+          <div class="terminal-screen" id="terminal-screen">AURA OS Unified Shell v0.1.0-prealpha [ARM64 Linux Environment]
+Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
+</div>
+          <form class="terminal-input-bar" id="terminal-form">
+            <span style="font-family: 'JetBrains Mono', monospace; color: var(--cyan-bright); font-size: 12px;">aurad@aura:~$</span>
+            <input type="text" class="terminal-input" id="terminal-input" placeholder="run command..." autocomplete="off">
+          </form>
+        </div>
+      </div>
 
+      <!-- ================= 6. BROWSER VIEW PANEL ================= -->
+      <div class="view-panel" id="view-browser">
+        <div class="view-card" style="display: flex; flex-direction: column; height: 550px;">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">Research & Documentation Browser</h2>
+          </div>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <input type="text" class="setting-input" style="flex: 1;" id="browser-url-bar" value="aura://docs/RASPBERRY_PI_5.md">
+            <button class="btn-action" onclick="navigateBrowser()">Go</button>
+          </div>
+          <div style="flex: 1; background: #030712; border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 16px; overflow-y: auto;" id="browser-content-area"></div>
+        </div>
+      </div>
+
+      <!-- ================= 7. NOTEBOOK VIEW PANEL ================= -->
+      <div class="view-panel" id="view-notebook">
+        <div class="view-card" style="display: flex; flex-direction: column; height: 550px;">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">AURA Intelligent Notebook</h2>
+            <button class="btn-action" onclick="saveNotebook()">Save Note</button>
+          </div>
+          <input type="text" class="setting-input" style="font-size: 16px; font-weight: 700; margin-bottom: 12px;" id="notebook-title" value="My Plan & Architecture Notes">
+          <textarea class="setting-input" style="flex: 1; resize: none; font-family: 'JetBrains Mono', monospace; line-height: 1.5;" id="notebook-content"># AURA OS Notes
+- Rein Driver integration
+- Multimodal hand gesture raycasting
+- Real-time PipeWire audio streaming
+- Autonomous Google Gemini task decomposition</textarea>
+        </div>
+      </div>
+
+      <!-- ================= 8. AUTOMATION VIEW PANEL ================= -->
+      <div class="view-panel" id="view-automation">
+        <div class="view-card">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">Automations & Routine Engine</h2>
+            <button class="btn-action" onclick="submitGoal('create an automation rule for morning startup')">+ New Routine</button>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 16px;">
+            Trigger event-based actions and ambient intelligence routines when presence or voice signals occur.
+          </p>
+          <div class="settings-grid">
+            <div class="settings-group">
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Study Mode Trigger</h5>
+                  <span>Turns off notification rings, opens notes</span>
+                </div>
+                <button class="btn-action" onclick="toggleAutomation('study', true)">Run Now</button>
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Sleep Mode Routine</h5>
+                  <span>Silences TTS, halts camera tracking</span>
+                </div>
+                <button class="btn-action" onclick="toggleAutomation('sleep', true)">Run Now</button>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Gym Mode Flow</h5>
+                  <span>Launches workout playlist & timers</span>
+                </div>
+                <button class="btn-action" onclick="toggleAutomation('gym', true)">Run Now</button>
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Focus Mode Shield</h5>
+                  <span>Isolates active IDE with high priority</span>
+                </div>
+                <button class="btn-action" onclick="toggleAutomation('focus', true)">Run Now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 9. SMART HOME VIEW PANEL ================= -->
+      <div class="view-panel" id="view-smarthome">
+        <div class="view-card">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">Smart Home & Ambient IoT</h2>
+            <span style="font-size: 11px; color: var(--emerald-accent);">Connected (Home Agent Online)</span>
+          </div>
+          <div class="settings-grid">
+            <div class="settings-group">
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Room Ambient Lights</h5>
+                  <span>Cyberpunk Cyan / Neon Violet Preset</span>
+                </div>
+                <label class="switch-toggle"><input type="checkbox" checked><span class="switch-slider"></span></label>
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Room Thermostat</h5>
+                  <span>Climate Target: 22°C</span>
+                </div>
+                <span style="font-weight: 700; color: var(--cyan-bright);">22°C</span>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Desktop Active Speaker Sink</h5>
+                  <span>PipeWire Low-Latency Stream</span>
+                </div>
+                <span style="font-size: 11px; color: var(--emerald-accent);">Online</span>
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Emergency Gesture Safety</h5>
+                  <span>Open Palm halts all audio and IoT actions</span>
+                </div>
+                <span style="font-size: 11px; color: var(--cyan-bright);">Armed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 10. SYSTEM VIEW PANEL ================= -->
+      <div class="view-panel" id="view-system">
+        <div class="view-card">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">System Telemetry & Architecture</h2>
+            <button class="btn-secondary" onclick="fetchStatus()">Refresh</button>
+          </div>
+          <pre id="system-raw-status" style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #CBD5E1; background: #030712; padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); overflow-x: auto;"></pre>
+        </div>
+      </div>
+
+      <!-- ================= 11. RESEARCH VIEW PANEL ================= -->
+      <div class="view-panel" id="view-research">
+        <div class="view-card">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">Semantic Memory & Knowledge Vault</h2>
+            <button class="btn-action" onclick="submitGoal('query knowledge base for architecture patterns')">Search Vault</button>
+          </div>
+          <div id="memory-items-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
+        </div>
+      </div>
+
+      <!-- ================= 12. SETTINGS VIEW PANEL ================= -->
+      <div class="view-panel" id="view-settings">
+        <div class="view-card">
+          <div class="card-header-row">
+            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">System Configuration & AI Models</h2>
+            <button class="btn-action" onclick="saveSettings()">Save All</button>
+          </div>
+
+          <div class="settings-grid">
+            <!-- Google Gemini Gateway -->
+            <div class="settings-group">
+              <div style="font-weight: 700; font-size: 13.5px; color: var(--cyan-bright); display: flex; justify-content: space-between;">
+                <span>Google Gemini Model Gateway</span>
+                <span id="gemini-status-pill" style="font-size: 10px; color: var(--emerald-accent);">Linked</span>
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>API Key</h5>
+                  <span>Autonomous reasoning & decomposition</span>
+                </div>
+                <input type="password" class="setting-input" style="width: 180px;" id="setting-gemini-key" placeholder="AIzaSy...">
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Model Selector</h5>
+                  <span>Active reasoning engine</span>
+                </div>
+                <select class="setting-input" id="setting-gemini-model">
+                  <option value="gemini-3.8-flash" selected>gemini-3.8-flash</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                  <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                </select>
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="testGeminiConnection()">Test Connection</button>
+                <button class="btn-action" onclick="saveGeminiKey()">Link Key</button>
+              </div>
+              <div id="gemini-test-result" style="font-size: 11px; color: var(--text-muted);">Key active with gemini-3.8-flash</div>
+            </div>
+
+            <!-- Voice & Audio Subsystem -->
+            <div class="settings-group">
+              <div style="font-weight: 700; font-size: 13.5px; color: var(--cyan-bright);">Voice & Speech Synthesis</div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Spoken Audio Feedback (TTS)</h5>
+                  <span>Synthesizes answers aloud</span>
+                </div>
+                <label class="switch-toggle"><input type="checkbox" id="setting-tts-enabled" checked><span class="switch-slider"></span></label>
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <h5>Voice Speech Rate</h5>
+                  <span>Playback speed (0.8x to 1.4x)</span>
+                </div>
+                <input type="range" id="setting-tts-rate" min="0.8" max="1.4" step="0.1" value="1.0" style="accent-color: var(--cyan-bright);">
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="testVoiceSynthesis()">Test Speech</button>
+                <button class="btn-action" onclick="emergencySilenceVoice()">Silence Audio</button>
+              </div>
+              <div id="voice-test-result" style="font-size: 11px; color: var(--text-muted);">Web Speech STT & Piper/macOS TTS active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- -------------------------------------------------------------
+       RIGHT SIDEBAR (PERSONA + ACTIVE AGENTS + SYSTEM HEALTH)
+       ------------------------------------------------------------- -->
+    <aside class="right-sidebar">
+
+      <!-- Top Persona / Avatar Card -->
+      <div class="glass-card">
+        <div class="card-header-row">
+          <div class="card-title-badge">
+            <span style="color: var(--emerald-accent); font-size: 14px;">•</span>
+            <span>AURA ACTIVE</span>
+          </div>
+          <button class="card-link-btn" onclick="switchView('settings')">Customize</button>
+        </div>
+        <div class="persona-card">
+          <div class="hologram-avatar">
+            <div class="hologram-scan"></div>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a8 8 0 0 0-8 8c0 3 1.5 5 3 6.5V19a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2.5c1.5-1.5 3-3.5 3-6.5a8 8 0 0 0-8-8z"/><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M10 14a3.5 3.5 0 0 0 4 0"/></svg>
+          </div>
+          <div class="persona-details">
+            <h3>AURA</h3>
+            <p>Your autonomous AI operating environment</p>
+            <div class="persona-version">v0.1.0-prealpha</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Agents List -->
+      <div class="glass-card">
+        <div class="card-header-row">
+          <div class="card-title-badge">Active Agents</div>
+          <button class="card-link-btn" onclick="switchView('agents')">View All →</button>
+        </div>
+        <div class="agent-row-list" id="sidebar-agent-list">
+          <!-- Populated dynamically via /api/agents -->
+        </div>
+      </div>
+
+      <!-- System Health Metrics Card -->
+      <div class="glass-card">
+        <div class="card-header-row">
+          <div class="card-title-badge">System Health</div>
+          <span style="font-size: 11px; font-weight: 700; color: var(--emerald-accent);">7/7 Online</span>
+        </div>
+        <div class="health-grid">
+          <!-- CPU -->
+          <div class="health-metric-box">
+            <div class="metric-label-row">
+              <span>CPU</span>
+              <span id="metric-cpu-val" style="color: var(--cyan-bright);">24%</span>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 100 24">
+              <path d="M0,18 Q20,6 40,14 T70,8 T100,10" fill="none" stroke="#22D3EE" stroke-width="2"/>
+            </svg>
+          </div>
+          <!-- RAM -->
+          <div class="health-metric-box">
+            <div class="metric-label-row">
+              <span>RAM</span>
+              <span id="metric-ram-val" style="color: var(--blue-accent);">5.2 / 16 GB</span>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 100 24">
+              <path d="M0,20 Q25,12 50,15 T75,9 T100,6" fill="none" stroke="#38BDF8" stroke-width="2"/>
+            </svg>
+          </div>
+          <!-- GPU -->
+          <div class="health-metric-box">
+            <div class="metric-label-row">
+              <span>GPU</span>
+              <span style="color: var(--purple-accent);">12%</span>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 100 24">
+              <path d="M0,22 Q30,16 60,19 T80,11 T100,14" fill="none" stroke="#A855F7" stroke-width="2"/>
+            </svg>
+          </div>
+          <!-- Storage -->
+          <div class="health-metric-box">
+            <div class="metric-label-row">
+              <span>Storage</span>
+              <span id="metric-disk-val" style="color: var(--amber-accent);">142 / 512 GB</span>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 100 24">
+              <path d="M0,16 Q20,10 40,12 T70,7 T100,5" fill="none" stroke="#F59E0B" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- =============================================================
+       JAVASCRIPT SUBSYSTEMS & REAL-TIME LOGIC
+       ============================================================= -->
   <script>
-    // 1. Clock display
+    // -------------------------------------------------------------
+    // 1. Live Real-Time Clock
+    // -------------------------------------------------------------
     function updateClock() {
       const now = new Date();
-      document.getElementById('clock-display').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      const dateStr = now.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      document.getElementById('clock-time').textContent = timeStr;
+      document.getElementById('clock-date').textContent = dateStr;
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // 2. Spatial Reticle Tracking (UI-021 simulation)
-    const reticle = document.getElementById('spatial-reticle');
-    window.addEventListener('mousemove', (e) => {
-      reticle.style.left = e.clientX + 'px';
-      reticle.style.top = e.clientY + 'px';
-    });
+    // -------------------------------------------------------------
+    // 2. Navigation & View Switching
+    // -------------------------------------------------------------
+    let currentView = 'home';
+    function switchView(viewName) {
+      currentView = viewName;
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-view') === viewName);
+      });
+      document.querySelectorAll('.view-panel').forEach(p => {
+        p.classList.remove('active');
+      });
+      const targetPanel = document.getElementById('view-' + viewName);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+      }
 
-    // 3. Audio Waveform Sine Animation (Canvas)
+      if (viewName === 'files') fetchFiles();
+      if (viewName === 'settings') loadSettings();
+      if (viewName === 'system') fetchStatus();
+      if (viewName === 'research') fetchMemory();
+      if (viewName === 'browser') navigateBrowser();
+    }
+
+    // -------------------------------------------------------------
+    // 3. Audio & Voice Subsystem (STT, Analyser, Waveform, TTS)
+    // -------------------------------------------------------------
+    const orb = document.getElementById('aura-orb');
+    const orbStatus = document.getElementById('orb-status');
     const canvas = document.getElementById('waveform');
     const ctx = canvas.getContext('2d');
+    const ambientMicBtn = document.getElementById('ambient-mic-btn');
+    const topMicBtn = document.getElementById('top-mic-btn');
+
+    let isListening = false;
+    let isSpeaking = false;
     let phase = 0;
+    let recognition = null;
+    let audioContext = null;
+    let analyserNode = null;
+    let audioDataArray = null;
+    let audioStream = null;
 
     function drawWaveform() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.beginPath();
-      ctx.strokeStyle = '#22D3EE';
-      ctx.lineWidth = 2;
-      ctx.shadowColor = '#06B6D4';
-      ctx.shadowBlur = 8;
-
       const midY = canvas.height / 2;
-      for (let x = 0; x < canvas.width; x++) {
-        const y = midY + Math.sin((x * 0.08) + phase) * 10 * Math.sin(phase * 0.5);
-        if (x === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+
+      if (isListening && analyserNode && audioDataArray) {
+        analyserNode.getByteTimeDomainData(audioDataArray);
+        ctx.strokeStyle = '#22D3EE';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#06B6D4';
+        ctx.shadowBlur = 8;
+        const sliceWidth = canvas.width / audioDataArray.length;
+        let x = 0;
+        for (let i = 0; i < audioDataArray.length; i++) {
+          const v = audioDataArray[i] / 128.0;
+          const y = v * midY;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+          x += sliceWidth;
+        }
+      } else if (isSpeaking) {
+        ctx.strokeStyle = '#C084FC';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#A855F7';
+        ctx.shadowBlur = 8;
+        for (let x = 0; x < canvas.width; x++) {
+          const amp = 8 * Math.abs(Math.sin(phase * 1.5));
+          const y = midY + Math.sin((x * 0.12) + phase) * amp;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+      } else if (isListening) {
+        ctx.strokeStyle = '#22D3EE';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#06B6D4';
+        ctx.shadowBlur = 6;
+        for (let x = 0; x < canvas.width; x++) {
+          const y = midY + Math.sin((x * 0.1) + phase) * 7;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+      } else {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        for (let x = 0; x < canvas.width; x++) {
+          const y = midY + Math.sin((x * 0.08) + phase) * 3;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
       }
       ctx.stroke();
-      phase += 0.08;
+      phase += (isListening || isSpeaking) ? 0.12 : 0.04;
       requestAnimationFrame(drawWaveform);
     }
     drawWaveform();
 
-    // 4. Polling Active Agents via aurad IPC API
-    const agentContainer = document.getElementById('agent-list-container');
-    const orbStatus = document.getElementById('orb-status');
+    function initSpeechRecognition() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) return null;
+      const rec = new SpeechRec();
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = 'en-US';
 
-    async function fetchAgents() {
+      rec.onstart = async () => {
+        isListening = true;
+        orb.classList.add('listening');
+        ambientMicBtn.classList.add('recording');
+        topMicBtn.classList.add('recording');
+        orbStatus.textContent = 'Listening...';
+        await startMicrophoneStream();
+        fetch('/api/voice/listen', { method: 'POST' }).catch(() => {});
+      };
+
+      rec.onresult = (e) => {
+        let transcript = '';
+        let isFinal = false;
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          transcript += e.results[i][0].transcript;
+          if (e.results[i].isFinal) isFinal = true;
+        }
+        document.getElementById('main-goal-input').value = transcript;
+        document.getElementById('top-search-input').value = transcript;
+
+        if (isFinal) {
+          orbStatus.textContent = 'Processing...';
+          stopVoiceListening();
+          submitGoal(transcript, { spoken: true });
+        } else {
+          orbStatus.textContent = 'Hearing: "' + transcript + '"';
+        }
+      };
+
+      rec.onerror = (e) => {
+        stopVoiceListening();
+        if (e.error !== 'no-speech') {
+          orbStatus.textContent = 'Voice: ' + e.error;
+          setTimeout(() => { if (!isListening && !isSpeaking) orbStatus.textContent = 'Standby'; }, 2000);
+        } else {
+          orbStatus.textContent = 'Standby';
+        }
+      };
+
+      rec.onend = () => {
+        stopVoiceListening();
+      };
+
+      return rec;
+    }
+
+    async function startMicrophoneStream() {
       try {
-        const res = await fetch('/api/agents');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.agents) return;
-
-        agentContainer.replaceChildren();
-        data.agents.forEach(agent => {
-          const item = document.createElement('div');
-          item.className = 'agent-item';
-
-          const avatar = document.createElement('div');
-          avatar.className = 'agent-avatar';
-          avatar.textContent = agent.name.charAt(0);
-
-          const info = document.createElement('div');
-          info.className = 'agent-info';
-
-          const name = document.createElement('div');
-          name.className = 'agent-name';
-          name.textContent = agent.name;
-
-          const task = document.createElement('div');
-          task.className = 'agent-task';
-          task.textContent = agent.current_task || agent.role;
-
-          info.appendChild(name);
-          info.appendChild(task);
-
-          const badge = document.createElement('div');
-          badge.className = 'agent-status-badge ' + (
-            agent.state === 'EXECUTING' ? 'badge-executing' :
-            agent.state === 'DONE' ? 'badge-done' : 'badge-idle'
-          );
-          badge.textContent = agent.state;
-
-          item.appendChild(avatar);
-          item.appendChild(info);
-          item.appendChild(badge);
-          agentContainer.appendChild(item);
-        });
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+        if (!audioStream) audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const source = audioContext.createMediaStreamSource(audioStream);
+        analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 64;
+        audioDataArray = new Uint8Array(analyserNode.frequencyBinCount);
+        source.connect(analyserNode);
       } catch (err) {
-        console.warn('Daemon offline or unreachable', err);
+        console.warn('Microphone stream error:', err);
       }
     }
-    setInterval(fetchAgents, 2000);
-    fetchAgents();
 
-    // 5. Goal Form Submission to aurad Daemon
-    const goalForm = document.getElementById('goal-form');
-    const goalInput = document.getElementById('goal-input');
+    function toggleVoiceListening() {
+      if (isSpeaking) {
+        emergencySilenceVoice();
+        return;
+      }
+      if (isListening) stopVoiceListening();
+      else startVoiceListening();
+    }
 
-    async function submitGoal(promptText) {
+    function startVoiceListening() {
+      if (!recognition) recognition = initSpeechRecognition();
+      if (recognition) {
+        try { recognition.start(); } catch (e) {}
+      } else {
+        const promptText = prompt('Speak / dictate to AURA OS:');
+        if (promptText) {
+          document.getElementById('main-goal-input').value = promptText;
+          submitGoal(promptText, { spoken: true });
+        }
+      }
+    }
+
+    function stopVoiceListening() {
+      isListening = false;
+      orb.classList.remove('listening');
+      ambientMicBtn.classList.remove('recording');
+      topMicBtn.classList.remove('recording');
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+      }
+      if (!isSpeaking) orbStatus.textContent = 'Standby';
+    }
+
+    function emergencySilenceVoice() {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      isSpeaking = false;
+      isListening = false;
+      orb.classList.remove('speaking');
+      orb.classList.remove('listening');
+      ambientMicBtn.classList.remove('recording');
+      topMicBtn.classList.remove('recording');
+      orbStatus.textContent = 'Standby';
+      fetch('/api/voice/pause', { method: 'POST' }).catch(() => {});
+    }
+
+    function speakText(text) {
+      const enabledBox = document.getElementById('setting-tts-enabled');
+      if (enabledBox && !enabledBox.checked) return;
+
+      emergencySilenceVoice();
+      const cleanText = text.replace(/[*_#`\n]/g, ' ').replace(/\s+/g, ' ').trim();
+
+      if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(cleanText);
+        const rateInput = document.getElementById('setting-tts-rate');
+        utter.rate = rateInput ? parseFloat(rateInput.value) : 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Samantha') || v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Daniel') || v.name.includes('en-US')));
+        if (preferred) utter.voice = preferred;
+
+        utter.onstart = () => {
+          isSpeaking = true;
+          orb.classList.add('speaking');
+          orbStatus.textContent = 'Speaking...';
+        };
+        utter.onend = utter.onerror = () => {
+          isSpeaking = false;
+          orb.classList.remove('speaking');
+          orbStatus.textContent = 'Standby';
+        };
+        window.speechSynthesis.speak(utter);
+      }
+
+      fetch('/api/voice/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText })
+      }).catch(() => {});
+    }
+
+    function testVoiceSynthesis() {
+      speakText('AURA OS voice synthesis online. Ambient intelligence and reasoning ready.');
+    }
+
+    orb.addEventListener('click', toggleVoiceListening);
+    ambientMicBtn.addEventListener('click', toggleVoiceListening);
+    topMicBtn.addEventListener('click', toggleVoiceListening);
+
+    // -------------------------------------------------------------
+    // 4. Goal Execution & Autonomous Gemini Dispatch
+    // -------------------------------------------------------------
+    async function submitGoal(promptText, options = {}) {
       if (!promptText || !promptText.trim()) return;
       orbStatus.textContent = 'Executing...';
       try {
@@ -749,37 +2557,385 @@
           body: JSON.stringify({ prompt: promptText.trim() })
         });
         const result = await res.json();
-        orbStatus.textContent = result.success ? 'Goal Succeeded!' : 'Task Failed';
-        setTimeout(() => { orbStatus.textContent = 'Listening...'; }, 3000);
+        const success = result.success !== false;
+
+        let responseMsg = '';
+        if (success) {
+          responseMsg = `Done: ${promptText.trim()}.`;
+          orbStatus.textContent = 'Completed!';
+        } else {
+          responseMsg = `Error: ${result.error || 'Task execution failed'}.`;
+          orbStatus.textContent = 'Error';
+        }
+
+        speakText(responseMsg);
+        setTimeout(() => { if (!isSpeaking && !isListening) orbStatus.textContent = 'Standby'; }, 3000);
         fetchAgents();
       } catch (err) {
-        orbStatus.textContent = 'Error: ' + err.message;
-        setTimeout(() => { orbStatus.textContent = 'Listening...'; }, 3000);
+        orbStatus.textContent = 'Error';
+        setTimeout(() => { if (!isSpeaking && !isListening) orbStatus.textContent = 'Standby'; }, 3000);
       }
     }
 
-    goalForm.addEventListener('submit', (e) => {
+    document.getElementById('main-goal-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const val = goalInput.value;
-      goalInput.value = '';
+      const input = document.getElementById('main-goal-input');
+      const val = input.value;
+      input.value = '';
       submitGoal(val);
     });
 
-    // Chip click handlers
-    document.querySelectorAll('.prompt-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const prompt = chip.getAttribute('data-prompt');
-        submitGoal(prompt);
-      });
+    document.getElementById('top-search-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('top-search-input');
+      const val = input.value;
+      input.value = '';
+      submitGoal(val);
     });
 
-    // Task toggle
-    document.querySelectorAll('.task-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const check = item.querySelector('.task-check');
-        check.classList.toggle('checked');
-      });
+    // -------------------------------------------------------------
+    // 5. Active Agents Fetcher & Display
+    // -------------------------------------------------------------
+    const agentIcons = {
+      'Code Agent': { color: '#3B82F6', svg: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', caps: ['terminal', 'vscode', 'github', 'python'] },
+      'Research Agent': { color: '#10B981', svg: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>', caps: ['web', 'arxiv', 'doc'] },
+      'System Agent': { color: '#6366F1', svg: '<rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/>', caps: ['metrics', 'bwrap', 'security'] },
+      'Home Agent': { color: '#F97316', svg: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', caps: ['home', 'light', 'climate'] },
+      'Schedule Agent': { color: '#A855F7', svg: '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>', caps: ['calendar', 'mail'] },
+    };
+
+    async function fetchAgents() {
+      try {
+        const res = await fetch('/api/agents');
+        if (!res.ok) return;
+        const data = await res.json();
+        const agents = data.agents || [];
+
+        // Update Right Sidebar Tiles
+        const sidebarContainer = document.getElementById('sidebar-agent-list');
+        sidebarContainer.innerHTML = '';
+
+        // Update Full Grid
+        const fullGrid = document.getElementById('agents-full-grid');
+        fullGrid.innerHTML = '';
+
+        agents.forEach(agent => {
+          const meta = agentIcons[agent.name] || { color: '#22D3EE', svg: '<circle cx="12" cy="12" r="10"/>', caps: ['tool'] };
+
+          // Sidebar tile
+          const tile = document.createElement('div');
+          tile.className = 'agent-tile';
+          tile.onclick = () => switchView('agents');
+          tile.innerHTML = `
+            <div class="agent-tile-left">
+              <div class="agent-icon-badge" style="background: ${meta.color}22; color: ${meta.color};">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${meta.svg}</svg>
+              </div>
+              <div class="agent-tile-info">
+                <h4>${agent.name}</h4>
+                <span>${agent.state === 'IDLE' ? 'Ready' : agent.state}</span>
+              </div>
+            </div>
+            <div class="agent-caps">
+              <div class="cap-dot" style="background: ${meta.color};"></div>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          `;
+          sidebarContainer.appendChild(tile);
+
+          // Full Grid Card
+          const card = document.createElement('div');
+          card.className = 'glass-card';
+          card.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="agent-icon-badge" style="background: ${meta.color}22; color: ${meta.color}; width: 34px; height: 34px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${meta.svg}</svg>
+                </div>
+                <div>
+                  <h4 style="font-size: 13.5px; font-weight: 700; color: #fff;">${agent.name}</h4>
+                  <span style="font-size: 10.5px; color: var(--text-muted);">${agent.state}</span>
+                </div>
+              </div>
+              <span style="font-size: 10.5px; padding: 2px 8px; border-radius: 99px; background: rgba(16, 185, 129, 0.15); color: #34D399;">Active</span>
+            </div>
+            <p style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px;">${agent.role}</p>
+            <div style="font-size: 10.5px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px;">
+              Task: ${agent.current_task || 'Awaiting goal prompt...'}
+            </div>
+          `;
+          fullGrid.appendChild(card);
+        });
+      } catch (e) {}
+    }
+    fetchAgents();
+    setInterval(fetchAgents, 4000);
+
+    // -------------------------------------------------------------
+    // 6. Live System Telemetry
+    // -------------------------------------------------------------
+    async function fetchTelemetry() {
+      try {
+        const res = await fetch('/api/telemetry');
+        if (!res.ok) return;
+        const d = await res.json();
+        document.getElementById('metric-cpu-val').textContent = d.cpu + '%';
+        document.getElementById('metric-ram-val').textContent = (d.ram * 0.16).toFixed(1) + ' / 16 GB';
+        document.getElementById('metric-disk-val').textContent = Math.round(d.disk * 5.12) + ' / 512 GB';
+      } catch (e) {}
+    }
+    fetchTelemetry();
+    setInterval(fetchTelemetry, 3000);
+
+    // -------------------------------------------------------------
+    // 7. Interactive Terminal Subsystem
+    // -------------------------------------------------------------
+    const termScreen = document.getElementById('terminal-screen');
+    const termInput = document.getElementById('terminal-input');
+
+    async function runTerminalCommand(cmd) {
+      if (!cmd || !cmd.trim()) return;
+      termScreen.textContent += `\n\naurad@aura:~$ ${cmd}\n`;
+      termScreen.scrollTop = termScreen.scrollHeight;
+      try {
+        const res = await fetch('/api/terminal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd })
+        });
+        const d = await res.json();
+        const payload = d.data || d;
+        const output = payload.combined || payload.stdout || payload.output || (payload.exit_code === 0 ? '✓ Success (exit 0)' : 'Exit code: ' + payload.exit_code);
+        termScreen.textContent += output;
+      } catch (err) {
+        termScreen.textContent += 'Execution error: ' + err.message;
+      }
+      termScreen.scrollTop = termScreen.scrollHeight;
+    }
+
+    document.getElementById('terminal-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = termInput.value;
+      termInput.value = '';
+      runTerminalCommand(val);
     });
+
+    function clearTerminal() {
+      termScreen.textContent = 'AURA OS Unified Shell v0.1.0-prealpha [ARM64 Linux Environment]\n';
+    }
+
+    // -------------------------------------------------------------
+    // 8. Filesystem Browser
+    // -------------------------------------------------------------
+    let currentFilesPath = '';
+    async function fetchFiles(targetPath = '') {
+      try {
+        const url = '/api/files' + (targetPath ? '?path=' + encodeURIComponent(targetPath) : '');
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        currentFilesPath = data.path;
+        document.getElementById('files-current-path').textContent = data.path;
+        document.getElementById('files-up-btn').onclick = () => fetchFiles(data.parent);
+
+        const tbody = document.getElementById('files-table-body');
+        tbody.innerHTML = '';
+        data.items.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="display: flex; align-items: center; gap: 8px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${item.is_dir ? '#38BDF8' : '#94A3B8'}" stroke-width="2">
+                ${item.is_dir ? '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>' : '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'}
+              </svg>
+              <span style="font-weight: ${item.is_dir ? '600' : '400'};">${item.name}</span>
+            </td>
+            <td style="color: var(--text-muted);">${item.is_dir ? 'Directory' : 'File'}</td>
+            <td style="color: var(--text-muted);">${item.is_dir ? '--' : (item.size < 1024 ? item.size + ' B' : Math.round(item.size/1024) + ' KB')}</td>
+            <td style="color: var(--text-muted);">${item.mtime}</td>
+          `;
+          row.onclick = () => {
+            if (item.is_dir) fetchFiles(item.path);
+            else openFileDoc(item.name);
+          };
+          tbody.appendChild(row);
+        });
+      } catch (e) {}
+    }
+
+    async function openFileDoc(fileName) {
+      switchView('browser');
+      document.getElementById('browser-url-bar').value = 'aura://docs/' + fileName;
+      try {
+        const res = await fetch('/api/file_content?path=' + encodeURIComponent(fileName));
+        const d = await res.json();
+        document.getElementById('browser-content-area').innerHTML = `
+          <h2 style="color: #fff; margin-bottom: 12px; font-family: monospace;">${fileName}</h2>
+          <pre style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #E2E8F0; white-space: pre-wrap; line-height: 1.5;">${d.content || 'File opened.'}</pre>
+        `;
+      } catch (e) {}
+    }
+
+    function navigateBrowser() {
+      const url = document.getElementById('browser-url-bar').value;
+      openFileDoc(url.replace('aura://docs/', ''));
+    }
+
+    // -------------------------------------------------------------
+    // 9. Semantic Memory & Research View
+    // -------------------------------------------------------------
+    async function fetchMemory() {
+      const container = document.getElementById('memory-items-container');
+      try {
+        const res = await fetch('/api/memory');
+        const data = await res.json();
+        container.innerHTML = '';
+        (data.items || []).forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'glass-card';
+          div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--cyan-bright); margin-bottom: 4px;">
+              <strong>${item.key}</strong>
+              <span style="color: var(--text-muted); text-transform: uppercase;">${item.category || 'general'}</span>
+            </div>
+            <div style="font-size: 12px; color: #E2E8F0;">${item.value}</div>
+          `;
+          container.appendChild(div);
+        });
+      } catch (e) {}
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        document.getElementById('system-raw-status').textContent = JSON.stringify(data, null, 2);
+      } catch (e) {}
+    }
+
+    // -------------------------------------------------------------
+    // 10. Settings & Gemini Key Management
+    // -------------------------------------------------------------
+    async function loadSettings() {
+      try {
+        const gRes = await fetch('/api/gemini');
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          const pill = document.getElementById('gemini-status-pill');
+          const input = document.getElementById('setting-gemini-key');
+          const modelSel = document.getElementById('setting-gemini-model');
+          const resLabel = document.getElementById('gemini-test-result');
+          if (gData.model) modelSel.value = gData.model;
+          if (gData.configured) {
+            pill.textContent = 'Linked (Active)';
+            pill.style.color = '#34D399';
+            input.placeholder = gData.masked_key || 'API Key Configured';
+            resLabel.textContent = `✓ Active with model: ${gData.model}`;
+            resLabel.style.color = '#34D399';
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function testGeminiConnection() {
+      const key = document.getElementById('setting-gemini-key').value.trim();
+      const model = document.getElementById('setting-gemini-model').value;
+      const resLabel = document.getElementById('gemini-test-result');
+      resLabel.textContent = 'Verifying key with Google Gemini API...';
+      resLabel.style.color = 'var(--cyan-bright)';
+
+      try {
+        const res = await fetch('/api/gemini/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key, model: model })
+        });
+        const data = await res.json();
+        if (data.success) {
+          resLabel.textContent = `✓ Success: Connected to ${data.model}`;
+          resLabel.style.color = '#34D399';
+        } else {
+          resLabel.textContent = `✗ ${data.error}`;
+          resLabel.style.color = '#EF4444';
+        }
+      } catch (err) {
+        resLabel.textContent = `✗ Connection error: ${err.message}`;
+        resLabel.style.color = '#EF4444';
+      }
+    }
+
+    async function saveGeminiKey() {
+      const key = document.getElementById('setting-gemini-key').value.trim();
+      const model = document.getElementById('setting-gemini-model').value;
+      if (!key) {
+        alert('Please enter a Gemini API Key');
+        return;
+      }
+      try {
+        const res = await fetch('/api/gemini/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key, model: model })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Gemini key linked successfully!');
+          loadSettings();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function saveSettings() {
+      alert('Settings saved to config/rpi5.yaml');
+    }
+
+    // -------------------------------------------------------------
+    // 11. Quick Utilities (Music, Apps, Automations, Notebook)
+    // -------------------------------------------------------------
+    let musicPlaying = false;
+    function toggleMusic(play) {
+      musicPlaying = play !== undefined ? play : !musicPlaying;
+      const btn = document.getElementById('music-play-btn');
+      if (musicPlaying) {
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+        speakText('Playing Blinding Lights by The Weeknd.');
+      } else {
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+      }
+    }
+
+    function launchApp(appName) {
+      speakText(`Opening ${appName}`);
+      if (appName === 'Terminal') switchView('terminal');
+      else if (appName === 'Chrome') switchView('browser');
+      else if (appName === 'Obsidian' || appName === 'Notion') switchView('notebook');
+      else submitGoal(`launch ${appName}`);
+    }
+
+    function toggleAutomation(modeName, state) {
+      const on = state !== undefined ? state : true;
+      speakText(`${modeName} mode ${on ? 'activated' : 'deactivated'}.`);
+    }
+
+    function saveNotebook() {
+      const title = document.getElementById('notebook-title').value;
+      const content = document.getElementById('notebook-content').value;
+      fetch('/api/memory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: title, value: content, category: 'notebook' })
+      }).then(() => {
+        alert('Note saved to AURA Memory Vault!');
+      });
+    }
+
+    function addWorkspace() {
+      const name = prompt('Enter new workspace name:');
+      if (name) alert(`Workspace '${name}' created!`);
+    }
   </script>
 </body>
 </html>

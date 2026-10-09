@@ -65,3 +65,33 @@ def test_voice_pipeline_full_cycle() -> None:
         assert service.tts.is_speaking is False
 
     asyncio.run(_run())
+
+
+def test_voice_service_status_and_control() -> None:
+    async def _run() -> None:
+        service = VoiceService()
+        status = service.get_status()
+        assert status["state"] == "WAIT_WAKE"
+        assert status["wake_word"] == "aura"
+        assert status["is_speaking"] is False
+
+        service.start_listening()
+        assert service.state == VoiceState.LISTENING
+
+        service.emergency_pause()
+        assert service.state == VoiceState.WAIT_WAKE
+
+    asyncio.run(_run())
+
+
+def test_voice_service_interact() -> None:
+    async def _run() -> None:
+        service = VoiceService()
+        res = await service.interact("create a folder called VoiceInteractTest on my Desktop", speak=False)
+        assert res["event"] == "GOAL_COMPLETED"
+        assert res["prompt"] == "create a folder called VoiceInteractTest on my Desktop"
+        assert "response" in res
+        assert service.state == VoiceState.WAIT_WAKE
+        assert len(service.history) >= 1
+
+    asyncio.run(_run())
