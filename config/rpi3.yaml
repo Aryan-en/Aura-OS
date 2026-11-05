@@ -1,0 +1,46 @@
+# ==============================================================================
+# AURA OS — "Lite" profile for 1 GB boards (Raspberry Pi 3 B/B+, Pi 4 1-2 GB)
+# Heavy ML (speech recognition, reasoning, TTS) is offloaded to the cloud (Gemini);
+# only audio capture, VAD and wake-word run locally. Hand tracking is off by default.
+# Requires: Raspberry Pi OS Lite 64-bit, internet, a Gemini API key.
+# ==============================================================================
+
+environment: "rpi3"
+profile: "lite"
+version: "0.1.0-prealpha"
+
+voice:
+  sample_rate: 16000
+  channels: 1
+  vad_silence_ms: 700
+  wake_word: "aura"
+  stt_backend: "gemini"        # no local Whisper: 1 GB RAM cannot host it
+  tts_backend: "auto"          # piper if installed, else espeak-ng
+  wake_backend: "auto"         # openwakeword if installed, else transcript matching
+  max_utterance_sec: 10.0
+
+vision:
+  enabled: false               # MediaPipe does not fit in 1 GB next to a browser
+  camera_index: 0
+  target_fps: 15
+  camera_backend: "v4l2"
+
+agent:
+  max_retry_budget: 2
+  default_timeout_sec: 60.0
+
+security:
+  enforce_voice_confirmation: true
+  allow_root_execution: false
+  isolate_processes_bubblewrap: true
+
+gemini:
+  api_key: null                # set via ~/.config/aura/secrets.env (GEMINI_API_KEY=...)
+  model: "gemini-2.5-flash"
+  temperature: 0.2
+  timeout_sec: 25.0
+
+ui:
+  host: "127.0.0.1"
+  port: 8765
+  allow_terminal: false

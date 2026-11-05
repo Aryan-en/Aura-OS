@@ -1,19 +1,23 @@
 [Unit]
-Description=AURA OS Desktop HUD Simulator Server
-Documentation=https://github.com/Aryan-en/Aura-OS
+Description=AURA OS HUD web server (loopback only)
 After=aura-core.service
 Wants=aura-core.service
 
 [Service]
 Type=simple
-WorkingDirectory=%h/Aura-OS
+User=@USER@
+WorkingDirectory=@ROOT@
 Environment=PYTHONUNBUFFERED=1
-ExecStart=%h/Aura-OS/.venv/bin/python3 -m aura.ui.server --host 0.0.0.0 --port 8765
-Restart=on-failure
-RestartSec=3s
-
-StandardOutput=journal
-StandardError=journal
+Environment=HOME=@HOME@
+Environment=XDG_RUNTIME_DIR=/run/aura
+ExecStart=@ROOT@/.venv/bin/python -m aura.ui.server
+RuntimeDirectory=aura
+RuntimeDirectoryPreserve=yes
+Restart=always
+RestartSec=2
+NoNewPrivileges=yes
+ProtectSystem=full
+PrivateTmp=yes
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

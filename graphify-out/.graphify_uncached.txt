@@ -1,0 +1,11 @@
+/Users/aryansingh/Documents/Aura-OS/README.md
+/Users/aryansingh/Documents/Aura-OS/aura/ui/static/index.html
+/Users/aryansingh/Documents/Aura-OS/context/ARCHITECTURE.md
+/Users/aryansingh/Documents/Aura-OS/context/PLAN.md
+/Users/aryansingh/Documents/Aura-OS/context/PROGRESS-TRACKER.md
+/Users/aryansingh/Documents/Aura-OS/context/UI-REGISTRY.md
+/Users/aryansingh/Documents/Aura-OS/docs/RASPBERRY_PI_5.md
+/Users/aryansingh/Documents/Aura-OS/Reference_UI.png
+/Users/aryansingh/Documents/Aura-OS/UI/Home.png
+/Users/aryansingh/Documents/Aura-OS/UI/wallpaper.jpg
+/Users/aryansingh/Documents/Aura-OS/aura/ui/static/wallpaper.jpg

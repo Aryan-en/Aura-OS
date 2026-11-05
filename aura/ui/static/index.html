@@ -1362,6 +1362,35 @@
       font-size: 12px;
       cursor: pointer;
     }
+  
+    #aura-caption { position: fixed; left: 50%; bottom: 36px; transform: translate(-50%, 20px); max-width: 70vw;
+      padding: 14px 22px; border-radius: 16px; background: rgba(12,16,28,.82); backdrop-filter: blur(18px);
+      border: 1px solid rgba(34,211,238,.35); color: #fff; font-size: 18px; opacity: 0; pointer-events: none;
+      transition: opacity .25s, transform .25s; z-index: 9000; }
+    #aura-caption.show { opacity: 1; transform: translate(-50%, 0); }
+    #aura-caption .cap-role { color: #22D3EE; font-weight: 600; margin-right: 10px; }
+    #aura-confirm { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.55); z-index: 9500; }
+    #aura-confirm.show { display: flex; }
+    #aura-confirm .box { background: rgba(18,22,36,.96); border: 1px solid rgba(168,85,247,.5); border-radius: 20px;
+      padding: 28px 32px; max-width: 560px; color: #fff; text-align: center; }
+    #aura-confirm h3 { margin: 0 0 10px; font-size: 22px; }
+    #aura-confirm p { margin: 0 0 6px; font-size: 17px; color: #cbd5e1; word-break: break-word; }
+    #aura-confirm .hint { font-size: 14px; color: #22D3EE; margin-bottom: 18px; }
+    #aura-confirm button { font-size: 17px; padding: 10px 26px; margin: 0 8px; border-radius: 12px; border: 0;
+      cursor: pointer; color: #fff; }
+    #aura-confirm .ok { background: #10B981; } #aura-confirm .no { background: #EF4444; }
+  
+    /* Lite render path for 1 GB boards (Pi 3/4-1GB): the GPU cannot afford blur/animation. */
+    body.lite *, body.lite *::before, body.lite *::after {
+      backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+      box-shadow: none !important; text-shadow: none !important; filter: none !important;
+    }
+    body.lite .view-card, body.lite aside, body.lite .sidebar, body.lite .nav-item.active {
+      background: rgba(14,18,30,.94) !important;
+    }
+    body.lite * { animation-duration: 0s !important; transition-duration: 0s !important; }
+    body.lite #aura-orb { animation: none !important; }
   </style>
 </head>
 <body>
@@ -2134,7 +2163,7 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
                   <span>Active reasoning engine</span>
                 </div>
                 <select class="setting-input" id="setting-gemini-model">
-                  <option value="gemini-3.8-flash" selected>gemini-3.8-flash</option>
+                  <option value="gemini-2.5-flash" selected>gemini-2.5-flash</option>
                   <option value="gemini-2.5-flash">gemini-2.5-flash</option>
                   <option value="gemini-1.5-flash">gemini-1.5-flash</option>
                   <option value="gemini-2.0-flash">gemini-2.0-flash</option>
@@ -2144,7 +2173,7 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
                 <button class="btn-secondary" onclick="testGeminiConnection()">Test Connection</button>
                 <button class="btn-action" onclick="saveGeminiKey()">Link Key</button>
               </div>
-              <div id="gemini-test-result" style="font-size: 11px; color: var(--text-muted);">Key active with gemini-3.8-flash</div>
+              <div id="gemini-test-result" style="font-size: 11px; color: var(--text-muted);">Key active with gemini-2.5-flash</div>
             </div>
 
             <!-- Voice & Audio Subsystem -->
@@ -2271,7 +2300,15 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
   <!-- =============================================================
        JAVASCRIPT SUBSYSTEMS & REAL-TIME LOGIC
        ============================================================= -->
-  <script>
+  
+  <div id="aura-caption"><span class="cap-role"></span><span class="cap-text"></span></div>
+  <div id="aura-confirm"><div class="box">
+    <h3>Aura needs your approval</h3>
+    <p id="confirm-text"></p><div class="hint" id="confirm-hint"></div>
+    <button class="ok" onclick="answerConfirm(true)">Approve</button>
+    <button class="no" onclick="answerConfirm(false)">Deny</button>
+  </div></div>
+<script>
     // -------------------------------------------------------------
     // 1. Live Real-Time Clock
     // -------------------------------------------------------------
@@ -2386,149 +2423,43 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
     }
     drawWaveform();
 
-    function initSpeechRecognition() {
-      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRec) return null;
-      const rec = new SpeechRec();
-      rec.continuous = false;
-      rec.interimResults = true;
-      rec.lang = 'en-US';
+    // Pick the render path by board: "lite" profile -> flat, no blur/animation.
+    if (new URLSearchParams(location.search).get('lite') === '1') document.body.classList.add('lite');
+    fetch('/api/hardware').then(r => r.json()).then(h => { if (h.profile === 'lite') document.body.classList.add('lite'); }).catch(() => {});
 
-      rec.onstart = async () => {
-        isListening = true;
-        orb.classList.add('listening');
-        ambientMicBtn.classList.add('recording');
-        topMicBtn.classList.add('recording');
-        orbStatus.textContent = 'Listening...';
-        await startMicrophoneStream();
-        fetch('/api/voice/listen', { method: 'POST' }).catch(() => {});
-      };
-
-      rec.onresult = (e) => {
-        let transcript = '';
-        let isFinal = false;
-        for (let i = e.resultIndex; i < e.results.length; ++i) {
-          transcript += e.results[i][0].transcript;
-          if (e.results[i].isFinal) isFinal = true;
-        }
-        document.getElementById('main-goal-input').value = transcript;
-        document.getElementById('top-search-input').value = transcript;
-
-        if (isFinal) {
-          orbStatus.textContent = 'Processing...';
-          stopVoiceListening();
-          submitGoal(transcript, { spoken: true });
-        } else {
-          orbStatus.textContent = 'Hearing: "' + transcript + '"';
-        }
-      };
-
-      rec.onerror = (e) => {
-        stopVoiceListening();
-        if (e.error !== 'no-speech') {
-          orbStatus.textContent = 'Voice: ' + e.error;
-          setTimeout(() => { if (!isListening && !isSpeaking) orbStatus.textContent = 'Standby'; }, 2000);
-        } else {
-          orbStatus.textContent = 'Standby';
-        }
-      };
-
-      rec.onend = () => {
-        stopVoiceListening();
-      };
-
-      return rec;
-    }
-
-    async function startMicrophoneStream() {
-      try {
-        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-        if (!audioStream) audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const source = audioContext.createMediaStreamSource(audioStream);
-        analyserNode = audioContext.createAnalyser();
-        analyserNode.fftSize = 64;
-        audioDataArray = new Uint8Array(analyserNode.frequencyBinCount);
-        source.connect(analyserNode);
-      } catch (err) {
-        console.warn('Microphone stream error:', err);
-      }
+    // Voice runs in the aurad daemon (mic -> wake word -> STT -> brain -> TTS).
+    // The HUD only mirrors its state through /api/events and sends commands to it.
+    // (Browser SpeechRecognition is deliberately unused: it does not work in Chromium on Raspberry Pi.)
+    function setVoiceState(state) {
+      isListening = state === 'LISTENING';
+      isSpeaking = state === 'SPEAKING';
+      orb.classList.toggle('listening', isListening);
+      orb.classList.toggle('speaking', isSpeaking);
+      ambientMicBtn.classList.toggle('recording', isListening);
+      topMicBtn.classList.toggle('recording', isListening);
+      orbStatus.textContent = {
+        WAIT_WAKE: 'Say "Aura"', LISTENING: 'Listening...', PROCESSING: 'Thinking...', SPEAKING: 'Speaking...'
+      }[state] || 'Standby';
     }
 
     function toggleVoiceListening() {
-      if (isSpeaking) {
-        emergencySilenceVoice();
-        return;
-      }
-      if (isListening) stopVoiceListening();
+      if (isSpeaking || isListening) emergencySilenceVoice();
       else startVoiceListening();
     }
 
     function startVoiceListening() {
-      if (!recognition) recognition = initSpeechRecognition();
-      if (recognition) {
-        try { recognition.start(); } catch (e) {}
-      } else {
-        const promptText = prompt('Speak / dictate to AURA OS:');
-        if (promptText) {
-          document.getElementById('main-goal-input').value = promptText;
-          submitGoal(promptText, { spoken: true });
-        }
-      }
-    }
-
-    function stopVoiceListening() {
-      isListening = false;
-      orb.classList.remove('listening');
-      ambientMicBtn.classList.remove('recording');
-      topMicBtn.classList.remove('recording');
-      if (recognition) {
-        try { recognition.stop(); } catch (e) {}
-      }
-      if (!isSpeaking) orbStatus.textContent = 'Standby';
+      fetch('/api/voice/listen', { method: 'POST' }).catch(() => {});
     }
 
     function emergencySilenceVoice() {
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
-      isSpeaking = false;
-      isListening = false;
-      orb.classList.remove('speaking');
-      orb.classList.remove('listening');
-      ambientMicBtn.classList.remove('recording');
-      topMicBtn.classList.remove('recording');
-      orbStatus.textContent = 'Standby';
       fetch('/api/voice/pause', { method: 'POST' }).catch(() => {});
+      setVoiceState('WAIT_WAKE');
     }
 
     function speakText(text) {
       const enabledBox = document.getElementById('setting-tts-enabled');
       if (enabledBox && !enabledBox.checked) return;
-
-      emergencySilenceVoice();
       const cleanText = text.replace(/[*_#`\n]/g, ' ').replace(/\s+/g, ' ').trim();
-
-      if ('speechSynthesis' in window) {
-        const utter = new SpeechSynthesisUtterance(cleanText);
-        const rateInput = document.getElementById('setting-tts-rate');
-        utter.rate = rateInput ? parseFloat(rateInput.value) : 1.0;
-
-        const voices = window.speechSynthesis.getVoices();
-        const preferred = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Samantha') || v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Daniel') || v.name.includes('en-US')));
-        if (preferred) utter.voice = preferred;
-
-        utter.onstart = () => {
-          isSpeaking = true;
-          orb.classList.add('speaking');
-          orbStatus.textContent = 'Speaking...';
-        };
-        utter.onend = utter.onerror = () => {
-          isSpeaking = false;
-          orb.classList.remove('speaking');
-          orbStatus.textContent = 'Standby';
-        };
-        window.speechSynthesis.speak(utter);
-      }
-
       fetch('/api/voice/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2540,6 +2471,66 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
       speakText('AURA OS voice synthesis online. Ambient intelligence and reasoning ready.');
     }
 
+    // ---- Toast / transcript caption ------------------------------------
+    let captionTimer = null;
+    function showCaption(role, text) {
+      const el = document.getElementById('aura-caption');
+      if (!el) return;
+      el.querySelector('.cap-role').textContent = role;
+      el.querySelector('.cap-text').textContent = text;
+      el.classList.add('show');
+      clearTimeout(captionTimer);
+      captionTimer = setTimeout(() => el.classList.remove('show'), 9000);
+    }
+
+    // ---- Confirmation dialog -------------------------------------------
+    function showConfirm(description, voice) {
+      document.getElementById('confirm-text').textContent = description;
+      document.getElementById('confirm-hint').textContent = voice ? 'Say "confirm" or "cancel"' : 'Use the buttons';
+      document.getElementById('aura-confirm').classList.add('show');
+    }
+    function answerConfirm(approved) {
+      document.getElementById('aura-confirm').classList.remove('show');
+      fetch('/api/confirm', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved })
+      }).catch(() => {});
+    }
+
+    // ---- Event stream from the daemon ----------------------------------
+    let lastEventId = null;
+    async function pollEvents() {
+      try {
+        const res = await fetch('/api/events?since=' + (lastEventId || 0));
+        const data = await res.json();
+        if (data.offline) { orbStatus.textContent = 'Daemon offline'; }
+        const first = lastEventId === null;
+        if (typeof data.last_id === 'number') lastEventId = data.last_id;
+        if (!first) (data.events || []).forEach(handleAuraEvent);
+        if (first && !data.offline) {
+          fetch('/api/voice/status').then(r => r.json()).then(v => v.state && setVoiceState(v.state)).catch(() => {});
+        }
+      } catch (e) { /* server restarting */ }
+      setTimeout(pollEvents, 500);
+    }
+
+    function handleAuraEvent(ev) {
+      switch (ev.type) {
+        case 'voice.state': setVoiceState(ev.state); break;
+        case 'voice.transcript':
+          if (ev.text) {
+            showCaption('You', ev.text);
+            document.getElementById('main-goal-input').value = '';
+          }
+          break;
+        case 'voice.reply': showCaption('Aura', ev.response); fetchAgents(); break;
+        case 'ui.view': switchView(ev.view); break;
+        case 'confirm.request': showConfirm(ev.description, ev.voice); break;
+        case 'confirm.closed': document.getElementById('aura-confirm').classList.remove('show'); break;
+      }
+    }
+    pollEvents();
+
     orb.addEventListener('click', toggleVoiceListening);
     ambientMicBtn.addEventListener('click', toggleVoiceListening);
     topMicBtn.addEventListener('click', toggleVoiceListening);
@@ -2549,31 +2540,21 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
     // -------------------------------------------------------------
     async function submitGoal(promptText, options = {}) {
       if (!promptText || !promptText.trim()) return;
-      orbStatus.textContent = 'Executing...';
+      const text = promptText.trim();
+      showCaption('You', text);
+      orbStatus.textContent = 'Thinking...';
+      const ttsBox = document.getElementById('setting-tts-enabled');
       try {
-        const res = await fetch('/api/goal', {
+        const res = await fetch('/api/voice/interact', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: promptText.trim() })
+          body: JSON.stringify({ prompt: text, speak: !ttsBox || ttsBox.checked })
         });
         const result = await res.json();
-        const success = result.success !== false;
-
-        let responseMsg = '';
-        if (success) {
-          responseMsg = `Done: ${promptText.trim()}.`;
-          orbStatus.textContent = 'Completed!';
-        } else {
-          responseMsg = `Error: ${result.error || 'Task execution failed'}.`;
-          orbStatus.textContent = 'Error';
-        }
-
-        speakText(responseMsg);
-        setTimeout(() => { if (!isSpeaking && !isListening) orbStatus.textContent = 'Standby'; }, 3000);
+        if (result.error) showCaption('Aura', 'Error: ' + result.error);
         fetchAgents();
       } catch (err) {
-        orbStatus.textContent = 'Error';
-        setTimeout(() => { if (!isSpeaking && !isListening) orbStatus.textContent = 'Standby'; }, 3000);
+        showCaption('Aura', 'The Aura daemon is not reachable.');
       }
     }
 

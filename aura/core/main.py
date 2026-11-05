@@ -16,8 +16,10 @@ from typing import Any, Dict, Optional
 
 from aura import __version__
 from aura.agents.manager import AgentManager
+from aura.agents.permissions import PermissionGate
 from aura.context.manager import ContextEngine
 from aura.core.config import AuraConfig
+from aura.core.events import bus
 from aura.core.logger import logger, setup_logger
 from aura.ipc.protocol import IPCRequest
 from aura.ipc.server import AsyncUnixSocketServer
@@ -27,6 +29,7 @@ from aura.vision.fusion import MultimodalFusionEngine
 from aura.vision.gestures import GestureClassifier
 from aura.vision.landmarks import HandLandmarks
 from aura.vision.raycaster import SpatialRaycaster
+from aura.voice.capture import MicCapture
 from aura.voice.service import VoiceService
 
 
@@ -40,8 +43,11 @@ class AuraDaemon:
 
         # Initialize Subsystems
         self.memory = MemoryDB(db_path=self.config.agent.sqlite_db_path)
-        self.agents = AgentManager(memory_db=self.memory)
-        self.voice = VoiceService(agent_manager=self.agents)
+        self.gate = PermissionGate(voice_can_confirm=self.config.security.enforce_voice_confirmation)
+        self.agents = AgentManager(memory_db=self.memory, gate=self.gate)
+        self.voice = VoiceService(agent_manager=self.agents, config=self.config)
+        self.mic = MicCapture(self.config.voice.sample_rate, self.config.voice.input_device)
+        self._voice_task: Optional[asyncio.Task[None]] = None
         self.context = ContextEngine()
         self.raycaster = SpatialRaycaster()
         self.classifier = GestureClassifier()
@@ -76,12 +82,51 @@ class AuraDaemon:
         # Vision & Spatial Gestures
         self.ipc_server.register("vision.process_landmarks", self._handle_process_landmarks)
 
+        # Events & confirmation (HUD polls these)
+        self.ipc_server.register("events.poll", self._handle_events_poll)
+        self.ipc_server.register("agent.confirm", self._handle_confirm)
+        self.ipc_server.register("core.set_gemini", self._handle_set_gemini)
+        self.ipc_server.register("memory.list", self._handle_memory_list)
+        self.ipc_server.register("memory.set", self._handle_memory_set)
+
         # Voice
         self.ipc_server.register("voice.pause", self._handle_voice_pause)
         self.ipc_server.register("voice.status", self._handle_voice_status)
         self.ipc_server.register("voice.speak", self._handle_voice_speak)
         self.ipc_server.register("voice.listen", self._handle_voice_listen)
         self.ipc_server.register("voice.interact", self._handle_voice_interact)
+
+    async def _handle_events_poll(self, request: IPCRequest) -> Dict[str, Any]:
+        since = int(request.params.get("since", 0))
+        # A client that has never polled (since=0) starts from "now" instead of replaying history.
+        return {"events": bus.since(since), "last_id": bus.last_id,
+                "voice": self.voice.get_status() if request.params.get("voice") else None}
+
+    async def _handle_set_gemini(self, request: IPCRequest) -> Dict[str, Any]:
+        """Hot-apply a new Gemini key/model to every component that talks to Gemini."""
+        key = str(request.params.get("api_key", "")).strip()
+        model = str(request.params.get("model", "")).strip()
+        for client in (self.voice.brain.gemini, self.voice.stt._gemini_client()):
+            if key:
+                client.api_key = key
+            if model:
+                client.model = model
+        self.voice.stt._backend = None  # re-resolve (cloud STT may have just become available)
+        return {"configured": self.voice.brain.gemini.is_configured(), "stt": self.voice.stt.backend}
+
+    async def _handle_memory_list(self, request: IPCRequest) -> Dict[str, Any]:
+        return {"items": self.memory.list_memory_items(int(request.params.get("limit", 50)))}
+
+    async def _handle_memory_set(self, request: IPCRequest) -> Dict[str, Any]:
+        key, val = str(request.params.get("key", "")).strip(), str(request.params.get("value", "")).strip()
+        if not key or not val:
+            raise ValueError("key and value are required")
+        self.memory.set_memory_item(key, val, str(request.params.get("category", "general")))
+        return {"success": True, "key": key}
+
+    async def _handle_confirm(self, request: IPCRequest) -> Dict[str, Any]:
+        approved = bool(request.params.get("approved", False))
+        return {"resolved": self.gate.resolve(approved, source="hud")}
 
     async def _handle_status(self, request: IPCRequest) -> Dict[str, Any]:
         uptime_sec = round(time.time() - self.start_time, 2)
@@ -98,8 +143,9 @@ class AuraDaemon:
                 "agents": "online",
                 "tools": f"online ({len(registry.get_definitions())} tools)",
                 "memory": "online (sqlite)",
-                "voice": f"online ({self.voice.state.value})",
-                "vision": "online (21-point tracking)",
+                "voice": f"{'online' if self._voice_task and not self._voice_task.done() else 'no microphone'} "
+                         f"({self.voice.state.value}, stt={self.voice.stt.backend}, wake={self.voice.wakeword.backend})",
+                "vision": "gesture API only (no camera loop)",
                 "context": "online",
             },
             "active_agents": self.agents.get_agent_statuses(),
@@ -208,8 +254,19 @@ class AuraDaemon:
         logger.info(f"Loaded {len(registry.get_definitions())} system tools into capability registry")
         logger.info("AURA Subsystems (Agents, Memory, Voice, Vision, Context) fully operational")
 
+        if os.environ.get("AURA_NO_MIC") == "1":
+            logger.info("Microphone disabled (AURA_NO_MIC=1).")
+        elif not self.mic.available:
+            logger.warning("No microphone tool found (install alsa-utils); voice input disabled.")
+        else:
+            self._voice_task = asyncio.create_task(self.voice.run(self.mic))
+        bus.emit("system.ready")
+
         await self._shutdown_event.wait()
 
+        self.mic.stop()
+        if self._voice_task:
+            self._voice_task.cancel()
         logger.info("Teardown initiated, closing server and subcomponents...")
         await self.ipc_server.stop()
         logger.info("=== AURA OS Daemon cleanly exited ===")

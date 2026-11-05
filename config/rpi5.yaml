@@ -5,6 +5,7 @@
 # ==============================================================================
 
 environment: "rpi5"
+profile: "full"
 version: "0.1.0-prealpha"
 
 socket:
@@ -48,6 +49,11 @@ security:
 
 gemini:
   api_key: null  # Loaded from GEMINI_API_KEY environment variable or .env
-  model: "gemini-3.8-flash"
+  model: "gemini-2.5-flash"
   temperature: 0.2
   timeout_sec: 20.0
+
+ui:
+  host: "127.0.0.1"
+  port: 8765
+  allow_terminal: false

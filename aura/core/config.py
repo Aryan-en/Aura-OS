@@ -15,7 +15,11 @@ from pydantic import BaseModel, Field
 
 
 def _load_env_file() -> None:
-    for candidate in [Path.cwd() / ".env", Path(__file__).parent.parent.parent / ".env"]:
+    for candidate in [
+        Path.home() / ".config" / "aura" / "secrets.env",
+        Path.cwd() / ".env",
+        Path(__file__).parent.parent.parent / ".env",
+    ]:
         if candidate.exists():
             try:
                 for line in candidate.read_text(encoding="utf-8").splitlines():
@@ -42,6 +46,11 @@ def get_default_socket_path() -> Path:
     then ~/.local/share/aura/aura.sock,
     then /tmp/aura-<user>/aura.sock.
     """
+    if os.environ.get("AURA_SOCKET"):
+        return Path(os.environ["AURA_SOCKET"])
+    system_sock = Path("/run/aura/aura/aura.sock")  # created by the systemd service on a Pi
+    if system_sock.exists():
+        return system_sock
     xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
     if xdg_runtime:
         return Path(xdg_runtime) / "aura" / "aura.sock"
@@ -73,6 +82,18 @@ class VoiceConfig(BaseModel):
     wake_word: str = Field(default="aura", description="Wake word activation string")
     stt_model: str = Field(default="base.en", description="Speech-to-text model identifier")
     tts_voice: str = Field(default="en_US-lessac-medium", description="Piper TTS voice model")
+    # Backends: "auto" picks the best available for the hardware profile.
+    stt_backend: str = Field(default="auto", description="auto | whisper | gemini | none")
+    tts_backend: str = Field(default="auto", description="auto | piper | espeak | say | none")
+    wake_backend: str = Field(default="auto", description="auto | openwakeword | transcript | none")
+    wake_phrases: list[str] = Field(
+        default_factory=lambda: ["aura", "hey aura", "jarvis", "hey jarvis"],
+        description="Phrases accepted by the transcript-based wake detector",
+    )
+    input_device: Optional[str] = Field(default=None, description="ALSA capture device (e.g. plughw:1,0)")
+    output_device: Optional[str] = Field(default=None, description="ALSA playback device")
+    energy_threshold: float = Field(default=500.0, gt=0.0, description="VAD RMS speech threshold")
+    max_utterance_sec: float = Field(default=12.0, gt=0.0)
 
 
 class VisionConfig(BaseModel):
@@ -83,6 +104,7 @@ class VisionConfig(BaseModel):
     tracking_confidence: float = Field(default=0.6, ge=0.0, le=1.0)
     raycast_fov_deg: float = Field(default=68.0, description="Camera horizontal field of view")
     camera_backend: str = Field(default="v4l2", description="Camera backend ('v4l2' or 'libcamera')")
+    enabled: bool = Field(default=True, description="Run the camera/gesture pipeline")
 
 
 class AgentConfig(BaseModel):
@@ -108,16 +130,25 @@ class GeminiConfig(BaseModel):
         description="Google Gemini API Key",
     )
     model: str = Field(
-        default="gemini-3.8-flash",
-        description="Gemini model identifier (e.g. gemini-3.8-flash, gemini-2.5-flash)",
+        default="gemini-2.5-flash",
+        description="Gemini model identifier (must support generateContent + audio input)",
     )
     temperature: float = Field(default=0.2, ge=0.0, le=1.0)
     timeout_sec: float = Field(default=20.0, gt=0.0)
 
 
+class UIConfig(BaseModel):
+    """HUD web server configuration."""
+    host: str = Field(default="127.0.0.1", description="Bind address. Keep loopback unless needed.")
+    port: int = Field(default=8765, ge=1, le=65535)
+    allow_terminal: bool = Field(default=False, description="Expose the HUD terminal endpoint")
+    file_roots: list[str] = Field(default_factory=lambda: ["~"], description="Browsable roots")
+
+
 class AuraConfig(BaseModel):
     """Root configuration for AURA OS."""
     environment: str = Field(default="development")
+    profile: str = Field(default="full", description="'lite' (cloud-assisted) or 'full' (local-first)")
     version: str = Field(default="0.1.0-prealpha")
     socket: SocketConfig = Field(default_factory=SocketConfig)
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
@@ -125,6 +156,7 @@ class AuraConfig(BaseModel):
     agent: AgentConfig = Field(default_factory=AgentConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     gemini: GeminiConfig = Field(default_factory=GeminiConfig)
+    ui: UIConfig = Field(default_factory=UIConfig)
 
     @classmethod
     def load(cls, config_path: Optional[Path] = None) -> AuraConfig:
@@ -134,7 +166,7 @@ class AuraConfig(BaseModel):
         1. Explicit config_path argument
         2. AURA_CONFIG environment variable
         3. ~/.config/aura/aura.yaml
-        4. config/rpi5.yaml (if running in repo root)
+        4. config/<board profile>.yaml (rpi3.yaml for lite boards, rpi5.yaml otherwise)
         5. config/aura.yaml
         Falls back securely to standard defaults if no configuration file is found.
         """
@@ -144,10 +176,15 @@ class AuraConfig(BaseModel):
         elif os.environ.get("AURA_CONFIG"):
             target_path = Path(os.environ["AURA_CONFIG"])
         else:
+            from aura.core.hardware import detect_hardware
+
+            repo_cfg = Path(__file__).parent.parent.parent / "config"
+            profile_file = detect_hardware().config_name
             candidates = [
                 Path.home() / ".config" / "aura" / "aura.yaml",
                 Path.home() / ".config" / "aura" / "config.yaml",
-                Path("config/rpi5.yaml"),
+                Path("config") / profile_file,
+                repo_cfg / profile_file,
                 Path("config/aura.yaml"),
             ]
             for cand in candidates:

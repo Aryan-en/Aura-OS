@@ -25,7 +25,7 @@ BLOCKED_PATTERNS = [
 @registry.register(
     "terminal.run_command",
     description="Execute a sandboxed shell command on the host OS.",
-    requires_voice_confirmation=False,
+    requires_voice_confirmation=True,
 )
 async def tool_run_command(
     command: str,

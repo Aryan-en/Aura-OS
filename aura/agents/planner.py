@@ -100,11 +100,6 @@ class GoalPlanner:
             dag.add_task(task)
             return dag
 
-        # Default fallback: Echo / Informational Task
-        task = Task(
-            title=f"Process goal: {goal_prompt}",
-            tool_name="terminal.run_command",
-            params={"command": f"echo 'AURA goal acknowledged: {goal_prompt}'"},
-        )
-        dag.add_task(task)
+        # Default fallback: informational no-op (never interpolate user text into a shell).
+        dag.add_task(Task(title=f"Acknowledge goal: {goal_prompt}"))
         return dag

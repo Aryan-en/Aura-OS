@@ -8,6 +8,7 @@ from __future__ import annotations
 import time
 from typing import Any, Callable, Dict, Optional
 
+from aura.agents.permissions import PermissionGate
 from aura.agents.task import Task, TaskDAG, TaskStatus
 from aura.core.logger import logger
 from aura.memory.db import MemoryDB
@@ -17,8 +18,9 @@ from aura.tools.registry import registry
 class ExecutionLoop:
     """Executes a TaskDAG until completion or failure."""
 
-    def __init__(self, memory_db: Optional[MemoryDB] = None) -> None:
+    def __init__(self, memory_db: Optional[MemoryDB] = None, gate: Optional[PermissionGate] = None) -> None:
         self.memory = memory_db
+        self.gate = gate
 
     async def run_dag(
         self,
@@ -51,6 +53,19 @@ class ExecutionLoop:
                     progress_cb(task)
 
                 if task.tool_name:
+                    definition = registry.get_definition(task.tool_name)
+                    if definition and definition.requires_voice_confirmation:
+                        approved = bool(self.gate) and await self.gate.request(
+                            f"{task.title} ({task.tool_name})", tool=task.tool_name
+                        )
+                        if not approved:
+                            task.status = TaskStatus.CANCELLED
+                            task.error = (
+                                "Denied by user" if self.gate else "Requires confirmation; no approval channel"
+                            )
+                            if self.memory:
+                                self.memory.update_task(task.id, task.status.value, None, task.error)
+                            continue
                     tool_start = time.perf_counter()
                     res = await registry.execute(task.tool_name, **task.params)
                     duration_ms = (time.perf_counter() - tool_start) * 1000.0

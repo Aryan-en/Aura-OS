@@ -1,0 +1,35 @@
+[Unit]
+Description=AURA OS fullscreen HUD on HDMI (cage + Chromium kiosk)
+After=aura-ui.service systemd-user-sessions.service seatd.service
+Wants=aura-ui.service
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+[Service]
+User=@USER@
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+StandardInput=tty-fail
+StandardOutput=journal
+StandardError=journal
+UtmpIdentifier=tty1
+UtmpMode=user
+Environment=XDG_RUNTIME_DIR=/run/user/@UID@
+Environment=WLR_LIBINPUT_NO_DEVICES=1
+# Wait for the HUD to answer, then start a single-app Wayland compositor with Chromium in kiosk mode.
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 60); do curl -fs http://127.0.0.1:8765/api/telemetry >/dev/null && exit 0; sleep 1; done; exit 1'
+ExecStart=/usr/bin/cage -d -- @CHROMIUM@ \
+  --kiosk --no-first-run --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
+  --ozone-platform=wayland --enable-features=UseOzonePlatform \
+  --disable-features=Translate,MediaRouter --disable-pinch --overscroll-history-navigation=0 \
+  --user-data-dir=@HOME@/.cache/aura-chromium --disk-cache-size=33554432 \
+  --autoplay-policy=no-user-gesture-required \
+  http://127.0.0.1:8765/
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target

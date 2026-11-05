@@ -49,15 +49,17 @@ def test_voice_pipeline_full_cycle() -> None:
             await service.process_audio_chunk(loud_chunk)
         assert service.state == VoiceState.LISTENING
 
-        # 3. Simulate speech pause (VAD silence > 300ms)
-        service.stt.set_mock_transcript("create a folder called VoiceTest on my Desktop")
-        # Advance time by setting last speech time in past
-        service.vad.last_speech_time = service.vad.last_speech_time - 0.5 if service.vad.last_speech_time else 0.0
+        # 3. Simulate speech pause (VAD silence > 300ms, speech lasted > min duration)
+        service.stt.set_mock_transcript("create a folder called VoiceTest in /tmp/aura-voice-test")
+        service.vad.last_speech_time -= 0.5
+        service.vad.speech_start_time -= 1.5
 
         res_done = await service.process_audio_chunk(silent_chunk)
         assert res_done is not None
-        assert res_done["event"] == "GOAL_COMPLETED"
-        assert res_done["transcript"] == "create a folder called VoiceTest on my Desktop"
+        assert res_done["event"] == "UTTERANCE_CAPTURED"
+        result = await res_done["task"]
+        assert result["event"] == "GOAL_COMPLETED"
+        assert result["transcript"] == "create a folder called VoiceTest in /tmp/aura-voice-test"
         assert service.state == VoiceState.WAIT_WAKE
 
         # 4. Emergency pause
@@ -87,9 +89,9 @@ def test_voice_service_status_and_control() -> None:
 def test_voice_service_interact() -> None:
     async def _run() -> None:
         service = VoiceService()
-        res = await service.interact("create a folder called VoiceInteractTest on my Desktop", speak=False)
+        res = await service.interact("create a folder called /tmp/aura-voice-interact-test", speak=False)
         assert res["event"] == "GOAL_COMPLETED"
-        assert res["prompt"] == "create a folder called VoiceInteractTest on my Desktop"
+        assert res["prompt"] == "create a folder called /tmp/aura-voice-interact-test"
         assert "response" in res
         assert service.state == VoiceState.WAIT_WAKE
         assert len(service.history) >= 1

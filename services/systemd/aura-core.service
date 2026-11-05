@@ -1,22 +1,24 @@
 [Unit]
-Description=AURA OS Core Runtime Daemon (aurad)
-Documentation=https://github.com/Aryan-en/Aura-OS
-After=pipewire.service wireplumber.service sound.target network.target
-Wants=pipewire.service wireplumber.service
+Description=AURA OS core daemon (voice, agents, memory)
+After=network-online.target sound.target
+Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/Aura-OS
+User=@USER@
+SupplementaryGroups=audio video input render
+WorkingDirectory=@ROOT@
 Environment=PYTHONUNBUFFERED=1
-Environment=AURA_CONFIG=%h/Aura-OS/config/rpi5.yaml
-ExecStart=%h/Aura-OS/.venv/bin/python3 -m aura.core.main --config %h/Aura-OS/config/rpi5.yaml
-Restart=on-failure
-RestartSec=3s
-LimitNOFILE=65535
-
-# Process hygiene & Sandboxing
-StandardOutput=journal
-StandardError=journal
+Environment=HOME=@HOME@
+Environment=XDG_RUNTIME_DIR=/run/aura
+ExecStart=@ROOT@/.venv/bin/python -m aura.core.main
+RuntimeDirectory=aura
+RuntimeDirectoryPreserve=yes
+Restart=always
+RestartSec=3
+Nice=-5
+ProtectSystem=full
+PrivateTmp=yes
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

@@ -1,443 +1,367 @@
 """
-AURA OS — Desktop Shell Simulator Web Server
-Serves the local desktop HUD interface on localhost:8765 and bridges to aurad UDS socket.
+AURA OS — HUD Web Server
+Serves the HUD and bridges it to the aurad daemon over its Unix socket.
+
+Security model
+  * Binds to loopback by default (the kiosk browser runs on the same machine).
+  * Any non-loopback client must present the per-device token (cookie / header / ?token=).
+  * State-changing requests must come from the same origin (blocks cross-site and DNS-rebinding).
+  * No wildcard CORS. File access is limited to configured roots; secrets are never returned.
+  * The HUD terminal is disabled unless `ui.allow_terminal: true`.
 """
 
 from __future__ import annotations
 
 import asyncio
+import hmac
 import http.server
+import ipaddress
 import json
 import os
-import platform
-import re
-import shutil
+import secrets
 import subprocess
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import yaml
 
 from aura.core.config import AuraConfig, get_default_socket_path
 from aura.core.logger import logger
 from aura.ipc.client import AuraIPCClient
+from aura.ui.telemetry import get_system_telemetry
 
 STATIC_DIR = Path(__file__).parent / "static"
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-SERVER_START_TIME = time.time()
+CONFIG_DIR = Path.home() / ".config" / "aura"
+TOKEN_FILE = CONFIG_DIR / "ui_token"
+SECRETS_FILE = CONFIG_DIR / "secrets.env"
+USER_CONFIG = CONFIG_DIR / "aura.yaml"
+MAX_BODY = 256 * 1024
+MAX_FILE_BYTES = 64 * 1024
+SENSITIVE_NAMES = {".env", "secrets.env", "ui_token", "id_rsa", "id_ed25519", "authorized_keys", ".netrc"}
+SENSITIVE_DIRS = {".ssh", ".gnupg", ".aws"}
+
+_cfg = AuraConfig.load()
 
 
-def get_system_telemetry() -> Dict[str, Any]:
-    """Gather live CPU, RAM, and Disk telemetry from host system."""
-    disk = shutil.disk_usage(os.path.expanduser("~"))
-    disk_pct = round((disk.used / disk.total) * 100, 1)
-
-    mem_pct = 42.0
+def load_or_create_token() -> str:
+    """Per-device access token for LAN clients (created 0600 on first run)."""
     try:
-        if platform.system() == "Darwin":
-            out = subprocess.check_output(["vm_stat"], text=True)
-            m = re.findall(r"Pages (free|active|inactive|speculative|wired down):\s+(\d+)", out)
-            stats = {k: int(v) for k, v in m}
-            free = stats.get("free", 0) + stats.get("speculative", 0)
-            used = stats.get("active", 0) + stats.get("wired down", 0)
-            total = free + used
-            if total > 0:
-                mem_pct = round((used / total) * 100, 1)
-        elif os.path.exists("/proc/meminfo"):
-            with open("/proc/meminfo", encoding="utf-8") as f:
-                lines = f.readlines()
-            mem = {}
-            for line in lines:
-                parts = line.split(":")
-                if len(parts) == 2:
-                    mem[parts[0].strip()] = int(parts[1].strip().split()[0])
-            total = mem.get("MemTotal", 1)
-            avail = mem.get("MemAvailable", mem.get("MemFree", 0))
-            mem_pct = round(((total - avail) / total) * 100, 1)
-    except Exception:
-        pass
+        return TOKEN_FILE.read_text().strip()
+    except OSError:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+        token = secrets.token_urlsafe(24)
+        fd = os.open(TOKEN_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(token)
+        return token
 
+
+TOKEN = load_or_create_token()
+
+
+def _is_loopback(addr: str) -> bool:
     try:
-        load = os.getloadavg()[0]
-        cores = os.cpu_count() or 4
-        cpu_pct = min(100.0, max(1.0, round((load / cores) * 100, 1)))
-    except Exception:
-        cpu_pct = 12.0
+        return ipaddress.ip_address(addr.split("%")[0]).is_loopback
+    except ValueError:
+        return False
 
-    return {
-        "cpu": cpu_pct,
-        "ram": mem_pct,
-        "disk": disk_pct,
-        "platform": f"{platform.system()} {platform.machine()}",
-        "uptime": round(time.time() - SERVER_START_TIME, 1),
-    }
+
+def _allowed_roots() -> list[Path]:
+    return [Path(r).expanduser().resolve() for r in _cfg.ui.file_roots]
+
+
+def _safe_path(raw: str) -> Optional[Path]:
+    """Resolve `raw` and return it only if inside an allowed root and not a secret."""
+    try:
+        p = Path(raw).expanduser().resolve()
+    except (OSError, RuntimeError):
+        return None
+    if not any(p == r or r in p.parents for r in _allowed_roots()):
+        return None
+    if p.name in SENSITIVE_NAMES or any(part in SENSITIVE_DIRS for part in p.parts):
+        return None
+    return p
+
+
+def _mask(key: Optional[str]) -> str:
+    return f"{key[:4]}…{key[-3:]}" if key and len(key) > 10 else ""
+
+
+def _save_secret(name: str, value: str) -> None:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+    lines = []
+    if SECRETS_FILE.exists():
+        lines = [ln for ln in SECRETS_FILE.read_text().splitlines() if not ln.startswith(f"{name}=")]
+    lines.append(f"{name}={value}")
+    fd = os.open(SECRETS_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines) + "\n")
 
 
 class AuraHTTPHandler(http.server.BaseHTTPRequestHandler):
-    """Local HTTP API bridging the Web HUD to the aurad daemon."""
+    server_version = "AuraHUD"
 
-    def _send_json(self, status_code: int, data: Any) -> None:
-        payload = json.dumps(data).encode("utf-8")
-        self.send_response(status_code)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    # ------------------------------------------------------------------ helpers
+    def _send(self, status: int, body: bytes, ctype: str, extra: Optional[Dict[str, str]] = None) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        for k, v in (extra or {}).items():
+            self.send_header(k, v)
         self.end_headers()
-        self.wfile.write(payload)
+        self.wfile.write(body)
 
-    def do_OPTIONS(self) -> None:
-        self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.end_headers()
+    def _json(self, status: int, data: Any) -> None:
+        self._send(status, json.dumps(data).encode(), "application/json", {"Cache-Control": "no-store"})
 
+    def _cookie_token(self) -> str:
+        for part in self.headers.get("Cookie", "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == "aura_token":
+                return v
+        return ""
+
+    def _authorized(self, query_token: str = "") -> bool:
+        if _is_loopback(self.client_address[0]):
+            host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]").lower()
+            return host in ("localhost", "127.0.0.1", "::1", "")  # blocks DNS rebinding
+        supplied = self.headers.get("X-Aura-Token") or self._cookie_token() or query_token
+        return hmac.compare_digest(supplied, TOKEN)
+
+    def _same_origin(self) -> bool:
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True  # non-browser client (curl, CLI)
+        return urllib.parse.urlparse(origin).netloc == self.headers.get("Host")
+
+    def _body(self) -> Dict[str, Any]:
+        n = int(self.headers.get("Content-Length") or 0)
+        if n > MAX_BODY:
+            raise ValueError("Request body too large")
+        data = json.loads(self.rfile.read(n) or b"{}")
+        return data if isinstance(data, dict) else {}
+
+    async def _ipc(self, method: str, params: Optional[dict] = None) -> Any:
+        async with AuraIPCClient(socket_path=get_default_socket_path()) as client:
+            return await client.call(method, params or {})
+
+    def _ipc_json(self, method: str, params: Optional[dict] = None, fallback: Optional[dict] = None) -> None:
+        try:
+            res = asyncio.run(self._ipc(method, params))
+            self._json(200 if res.success else 500, res.data if res.success else {"error": res.error})
+        except Exception as e:
+            self._json(503, fallback if fallback is not None else {"error": f"Daemon offline: {e}"})
+
+    # ------------------------------------------------------------------ GET
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
+        q = urllib.parse.parse_qs(parsed.query)
         path = parsed.path
+        if not self._authorized(q.get("token", [""])[0]):
+            self._send(401, b"Unauthorized: open the HUD from the device itself or use the token URL.", "text/plain")
+            return
 
         if path in ("/", "/index.html"):
-            index_file = STATIC_DIR / "index.html"
-            if index_file.exists():
-                content = index_file.read_bytes()
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Length", str(len(content)))
-                self.end_headers()
-                self.wfile.write(content)
+            index = STATIC_DIR / "index.html"
+            if not index.exists():
+                self._send(404, b"HUD not installed", "text/plain")
                 return
+            extra = {"Cache-Control": "no-cache"}
+            tok = q.get("token", [""])[0]
+            if tok and hmac.compare_digest(tok, TOKEN):
+                extra["Set-Cookie"] = f"aura_token={TOKEN}; Path=/; HttpOnly; SameSite=Strict"
+            self._send(200, index.read_bytes(), "text/html; charset=utf-8", extra)
+            return
 
         if path in ("/wallpaper.jpg", "/Reference_UI.png", "/Home.png"):
-            target_img = STATIC_DIR / path.lstrip("/")
-            if not target_img.exists():
-                target_img = PROJECT_ROOT / "UI" / path.lstrip("/")
-            if not target_img.exists():
-                target_img = PROJECT_ROOT / path.lstrip("/")
-            if target_img.exists():
-                mime = "image/jpeg" if path.endswith((".jpg", ".jpeg")) else "image/png"
-                content = target_img.read_bytes()
-                self.send_response(200)
-                self.send_header("Content-Type", mime)
-                self.send_header("Content-Length", str(len(content)))
-                self.send_header("Cache-Control", "public, max-age=86400")
-                self.end_headers()
-                self.wfile.write(content)
-                return
+            for base in (STATIC_DIR, PROJECT_ROOT / "UI", PROJECT_ROOT):
+                f = base / path.lstrip("/")
+                if f.is_file():
+                    mime = "image/jpeg" if path.endswith(".jpg") else "image/png"
+                    self._send(200, f.read_bytes(), mime, {"Cache-Control": "public, max-age=86400"})
+                    return
 
-        if path == "/api/status":
-            try:
-                res = asyncio.run(self._call_ipc("core.status"))
-                self._send_json(200, res.data if res.success else {"error": res.error})
-            except Exception as e:
-                self._send_json(503, {"error": f"Daemon offline: {e}"})
+        routes = {
+            "/api/status": ("core.status", None, None),
+            "/api/agents": ("agent.list", None, None),
+            "/api/tools": ("tools.list", None, None),
+            "/api/memory": ("memory.list", None, {"items": []}),
+            "/api/voice/status": ("voice.status", None, {"state": "OFFLINE", "error": "daemon offline"}),
+        }
+        if path in routes:
+            method, params, fb = routes[path]
+            self._ipc_json(method, params, fb)
+            return
+
+        if path == "/api/events":
+            since = int(q.get("since", ["0"])[0] or 0)
+            self._ipc_json("events.poll", {"since": since, "voice": q.get("voice", ["0"])[0] == "1"},
+                           {"events": [], "last_id": since, "offline": True})
             return
 
         if path == "/api/telemetry":
-            self._send_json(200, get_system_telemetry())
-            return
-
-        if path == "/api/agents":
-            try:
-                res = asyncio.run(self._call_ipc("agent.list"))
-                self._send_json(200, res.data if res.success else {"error": res.error})
-            except Exception as e:
-                self._send_json(503, {"error": str(e)})
-            return
-
-        if path == "/api/tools":
-            try:
-                res = asyncio.run(self._call_ipc("tools.list"))
-                self._send_json(200, res.data if res.success else {"error": res.error})
-            except Exception as e:
-                self._send_json(503, {"error": str(e)})
+            self._json(200, get_system_telemetry())
             return
 
         if path == "/api/files":
-            query = urllib.parse.parse_qs(parsed.query)
-            req_path = query.get("path", [str(PROJECT_ROOT)])[0]
-            target = Path(req_path).expanduser().resolve()
-            if not target.exists() or not target.is_dir():
-                target = PROJECT_ROOT
-
+            target = _safe_path(q.get("path", [str(Path.home())])[0])
+            if target is None or not target.is_dir():
+                target = _allowed_roots()[0]
             items = []
-            try:
-                for entry in sorted(target.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower())):
-                    if entry.name.startswith(".") and entry.name not in (".venv", ".gitignore"):
-                        continue
-                    try:
-                        st = entry.stat()
-                        items.append({
-                            "name": entry.name,
-                            "path": str(entry),
-                            "is_dir": entry.is_dir(),
-                            "size": st.st_size if not entry.is_dir() else 0,
-                            "mtime": time.strftime("%b %d, %H:%M", time.localtime(st.st_mtime)),
-                        })
-                    except OSError:
-                        continue
-
-                parent_dir = str(target.parent) if target.parent != target else str(target)
-                self._send_json(200, {
-                    "path": str(target),
-                    "parent": parent_dir,
-                    "items": items,
-                })
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
+            for entry in sorted(target.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower())):
+                if entry.name.startswith(".") or entry.name in SENSITIVE_NAMES:
+                    continue
+                try:
+                    st = entry.stat()
+                except OSError:
+                    continue
+                items.append({"name": entry.name, "path": str(entry), "is_dir": entry.is_dir(),
+                              "size": 0 if entry.is_dir() else st.st_size,
+                              "mtime": time.strftime("%b %d, %H:%M", time.localtime(st.st_mtime))})
+            roots = _allowed_roots()
+            parent = target.parent if any(target != r for r in roots) and _safe_path(str(target.parent)) else target
+            self._json(200, {"path": str(target), "parent": str(parent), "items": items})
             return
 
         if path == "/api/file_content":
-            query = urllib.parse.parse_qs(parsed.query)
-            req_path = query.get("path", [""])[0]
-            target = Path(req_path).expanduser().resolve()
-            if target.is_file():
-                try:
-                    text = target.read_text(encoding="utf-8", errors="replace")[:65536]
-                    self._send_json(200, {
-                        "path": str(target),
-                        "name": target.name,
-                        "content": text,
-                        "size": target.stat().st_size,
-                    })
-                except Exception as e:
-                    self._send_json(500, {"error": str(e)})
-            else:
-                self._send_json(404, {"error": "File not found or not a regular file"})
-            return
-
-        if path == "/api/memory":
-            try:
-                from aura.memory.db import MemoryDB
-                db = MemoryDB()
-                items = db.list_recent(limit=50)
-                self._send_json(200, {"items": items})
-            except Exception:
-                self._send_json(200, {"items": [
-                    {"key": "user_name", "value": "Aryan", "category": "preference", "updated_at": time.time() - 3600},
-                    {"key": "system_target", "value": "ARM64 Linux (Raspberry Pi 5 / UTM)", "category": "system", "updated_at": time.time() - 1800},
-                    {"key": "audio_stack", "value": "PipeWire 16kHz Mono RingBuffer", "category": "architecture", "updated_at": time.time() - 900},
-                    {"key": "hand_landmarks", "value": "21-point 3D MediaPipe kinematics", "category": "vision", "updated_at": time.time() - 300},
-                ]})
+            target = _safe_path(q.get("path", [""])[0])
+            if target is None or not target.is_file():
+                self._json(404, {"error": "File not found or access denied"})
+                return
+            with open(target, "rb") as f:
+                text = f.read(MAX_FILE_BYTES).decode("utf-8", "replace")
+            self._json(200, {"path": str(target), "name": target.name, "content": text,
+                             "size": target.stat().st_size})
             return
 
         if path == "/api/gemini":
             from aura.agents.gemini import GeminiClient
-            client = GeminiClient()
-            masked = (
-                client.api_key[:6] + "..." + client.api_key[-4:]
-                if client.api_key and len(client.api_key) > 10
-                else ""
-            )
-            self._send_json(200, {
-                "configured": client.is_configured(),
-                "model": client.model,
-                "has_key": bool(client.api_key),
-                "masked_key": masked,
-            })
-            return
 
-        if path == "/api/voice/status":
-            try:
-                res = asyncio.run(self._call_ipc("voice.status"))
-                self._send_json(200, res.data if res.success else {"error": res.error})
-            except Exception as e:
-                self._send_json(503, {
-                    "state": "WAIT_WAKE",
-                    "wake_word": "aura",
-                    "is_speaking": False,
-                    "error": str(e),
-                })
+            c = GeminiClient()
+            self._json(200, {"configured": c.is_configured(), "model": c.model,
+                             "has_key": bool(c.api_key), "masked_key": _mask(c.api_key)})
             return
 
         if path == "/api/settings":
-            try:
-                cfg = AuraConfig.load()
-                self._send_json(200, cfg.model_dump())
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
+            data = AuraConfig.load().model_dump(mode="json")
+            data["gemini"]["api_key"] = _mask(data["gemini"].get("api_key"))
+            data["socket"].pop("socket_path", None)
+            self._json(200, data)
             return
 
-        self.send_error(404, "Not Found")
+        if path == "/api/hardware":
+            from aura.core.hardware import detect_hardware
 
+            hw = detect_hardware()
+            self._json(200, {"model": hw.model, "board": hw.board, "ram_mb": hw.ram_mb,
+                             "cores": hw.cores, "profile": hw.profile})
+            return
+
+        self._send(404, b"Not Found", "text/plain")
+
+    # ------------------------------------------------------------------ POST
     def do_POST(self) -> None:
-        parsed = urllib.parse.urlparse(self.path)
-        content_len = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(content_len)
-
-        if parsed.path == "/api/goal":
-            try:
-                data = json.loads(body.decode("utf-8"))
-                prompt = data.get("prompt") or data.get("goal")
-                res = asyncio.run(self._call_ipc("agent.submit_goal", {"goal": prompt}))
-                self._send_json(200, res.data if res.success else {"error": res.error})
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
+        path = urllib.parse.urlparse(self.path).path
+        if not self._authorized() or not self._same_origin():
+            self._json(403, {"error": "Forbidden"})
+            return
+        try:
+            body = self._body()
+        except (ValueError, json.JSONDecodeError) as e:
+            self._json(400, {"error": str(e)})
             return
 
-        if parsed.path == "/api/terminal":
-            try:
-                data = json.loads(body.decode("utf-8"))
-                cmd = data.get("command", "").strip()
-                cwd = data.get("cwd") or str(PROJECT_ROOT)
-                if not cmd:
-                    self._send_json(400, {"error": "No command provided"})
-                    return
-
-                try:
-                    ipc_res = asyncio.run(self._call_ipc("tools.execute", {
-                        "name": "terminal.run_command",
-                        "args": {"command": cmd, "cwd": cwd, "timeout_sec": 30.0},
-                    }))
-                    if ipc_res.success:
-                        self._send_json(200, ipc_res.data)
-                        return
-                except Exception:
-                    pass
-
-                proc = subprocess.run(
-                    cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=30
-                )
-                self._send_json(200, {
-                    "command": cmd,
-                    "exit_code": proc.returncode,
-                    "stdout": proc.stdout,
-                    "stderr": proc.stderr,
-                    "combined": (proc.stdout + proc.stderr).strip(),
-                })
-            except subprocess.TimeoutExpired:
-                self._send_json(200, {"command": cmd, "exit_code": 124, "combined": "Command timed out (30s)"})
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
-            return
-
-        if parsed.path == "/api/memory":
-            try:
-                from aura.memory.db import MemoryDB
-                data = json.loads(body.decode("utf-8"))
-                key = data.get("key", "").strip()
-                val = data.get("value", "").strip()
-                cat = data.get("category", "general").strip()
-                if not key or not val:
-                    self._send_json(400, {"error": "key and value required"})
-                    return
-                db = MemoryDB()
-                db.set(key, val, category=cat)
-                self._send_json(200, {"success": True, "key": key})
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
-            return
-
-        if parsed.path == "/api/settings":
-            try:
-                data = json.loads(body.decode("utf-8"))
-                target_cfg = PROJECT_ROOT / "config" / "rpi5.yaml"
-                with open(target_cfg, "w", encoding="utf-8") as f:
-                    yaml.safe_dump(data, f)
-                self._send_json(200, {"success": True, "saved_to": str(target_cfg)})
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
-            return
-
-        if parsed.path == "/api/gemini/test":
-            try:
+        try:
+            if path == "/api/goal":
+                self._ipc_json("agent.submit_goal", {"goal": body.get("prompt") or body.get("goal")})
+            elif path == "/api/confirm":
+                self._ipc_json("agent.confirm", {"approved": bool(body.get("approved"))})
+            elif path == "/api/voice/listen":
+                self._ipc_json("voice.listen")
+            elif path == "/api/voice/pause":
+                self._ipc_json("voice.pause")
+            elif path == "/api/voice/speak":
+                self._ipc_json("voice.speak", {"text": str(body.get("text", "")).strip()})
+            elif path == "/api/voice/interact":
+                self._ipc_json("voice.interact", {"prompt": body.get("prompt") or body.get("goal", ""),
+                                                  "speak": body.get("speak", True)})
+            elif path == "/api/memory":
+                self._ipc_json("memory.set", {"key": body.get("key", ""), "value": body.get("value", ""),
+                                              "category": body.get("category", "general")})
+            elif path == "/api/terminal":
+                self._terminal(body)
+            elif path == "/api/settings":
+                cfg = AuraConfig.load().model_dump(mode="json")
+                for section, vals in body.items():
+                    if section in cfg and isinstance(vals, dict) and section not in ("socket",):
+                        vals.pop("api_key", None)
+                        cfg[section].update(vals)
+                cfg["gemini"]["api_key"] = None  # secrets live in secrets.env only
+                cfg["socket"].pop("socket_path", None)
+                AuraConfig(**cfg)  # validate before writing
+                CONFIG_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+                USER_CONFIG.write_text(yaml.safe_dump(cfg))
+                self._json(200, {"success": True, "saved_to": str(USER_CONFIG),
+                                 "note": "Restart aura-core to apply."})
+            elif path == "/api/gemini/test":
                 from aura.agents.gemini import GeminiClient
 
-                data = json.loads(body.decode("utf-8"))
-                key = data.get("api_key", "").strip()
-                model = data.get("model", "gemini-2.5-flash")
-                client = GeminiClient(api_key=key, model=model)
-                res = client.test_connection()
-                self._send_json(200, res)
-            except Exception as e:
-                self._send_json(500, {"success": False, "error": str(e)})
-            return
-
-        if parsed.path == "/api/gemini/save":
-            try:
-                data = json.loads(body.decode("utf-8"))
-                key = data.get("api_key", "").strip()
-                model = data.get("model", "gemini-2.5-flash")
+                key = str(body.get("api_key", "")).strip() or None
+                self._json(200, GeminiClient(api_key=key, model=body.get("model")).test_connection())
+            elif path == "/api/gemini/save":
+                key = str(body.get("api_key", "")).strip()
+                model = str(body.get("model", "gemini-2.5-flash")).strip()
                 if key:
-                    os.environ["GEMINI_API_KEY"] = key
-                target_cfg = PROJECT_ROOT / "config" / "rpi5.yaml"
-                existing = {}
-                if target_cfg.exists():
-                    with open(target_cfg, "r", encoding="utf-8") as f:
-                        existing = yaml.safe_load(f) or {}
-                if "gemini" not in existing:
-                    existing["gemini"] = {}
-                existing["gemini"]["api_key"] = key
-                existing["gemini"]["model"] = model
-                with open(target_cfg, "w", encoding="utf-8") as f:
-                    yaml.safe_dump(existing, f)
-                self._send_json(200, {
-                    "success": True,
-                    "message": f"Gemini API key linked and saved successfully ({model})",
-                })
-            except Exception as e:
-                self._send_json(500, {"success": False, "error": str(e)})
+                    _save_secret("GEMINI_API_KEY", key)
+                try:
+                    asyncio.run(self._ipc("core.set_gemini", {"api_key": key, "model": model}))
+                except Exception:
+                    pass  # daemon not running: key is picked up at next start
+                self._json(200, {"success": True, "message": f"Gemini key saved securely ({model})"})
+            else:
+                self._json(404, {"error": "Endpoint not found"})
+        except Exception as e:
+            logger.warning(f"HUD request {path} failed: {e}")
+            self._json(500, {"error": str(e)})
+
+    def _terminal(self, body: Dict[str, Any]) -> None:
+        if not _cfg.ui.allow_terminal:
+            self._json(403, {"error": "Terminal is disabled. Set ui.allow_terminal: true to enable."})
             return
-
-        if parsed.path == "/api/voice/listen":
-            try:
-                res = asyncio.run(self._call_ipc("voice.listen"))
-                self._send_json(200, res.data if res.success else {"error": res.error})
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
+        cmd = str(body.get("command", "")).strip()
+        cwd = _safe_path(str(body.get("cwd") or Path.home())) or Path.home()
+        if not cmd:
+            self._json(400, {"error": "No command provided"})
             return
-
-        if parsed.path == "/api/voice/pause":
-            try:
-                res = asyncio.run(self._call_ipc("voice.pause"))
-                self._send_json(200, res.data if res.success else {"error": res.error})
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
-            return
-
-        if parsed.path == "/api/voice/speak":
-            try:
-                data = json.loads(body.decode("utf-8"))
-                text = data.get("text", "").strip()
-                res = asyncio.run(self._call_ipc("voice.speak", {"text": text}))
-                self._send_json(200, res.data if res.success else {"error": res.error})
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
-            return
-
-        if parsed.path == "/api/voice/interact":
-            try:
-                data = json.loads(body.decode("utf-8"))
-                prompt = data.get("prompt") or data.get("goal", "")
-                speak = data.get("speak", True)
-                res = asyncio.run(self._call_ipc("voice.interact", {"prompt": prompt, "speak": speak}))
-                self._send_json(200, res.data if res.success else {"error": res.error})
-            except Exception as e:
-                self._send_json(500, {"error": str(e)})
-            return
-
-        self.send_error(404, "Endpoint not found")
-
-    async def _call_ipc(self, method: str, params: dict | None = None) -> Any:
-        socket_path = get_default_socket_path()
-        async with AuraIPCClient(socket_path=socket_path) as client:
-            return await client.call(method, params or {})
+        try:
+            proc = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=30)
+            out = (proc.stdout + proc.stderr).strip()
+            self._json(200, {"command": cmd, "exit_code": proc.returncode, "stdout": proc.stdout,
+                             "stderr": proc.stderr, "combined": out})
+        except subprocess.TimeoutExpired:
+            self._json(200, {"command": cmd, "exit_code": 124, "combined": "Command timed out (30s)"})
 
     def log_message(self, format: str, *args: Any) -> None:
         pass
 
 
-def run_ui_server(host: str = "127.0.0.1", port: int = 8765) -> None:
-    """Launch the Web HUD simulator."""
+def run_ui_server(host: Optional[str] = None, port: Optional[int] = None) -> None:
+    host = host or _cfg.ui.host
+    port = port or _cfg.ui.port
     server = http.server.ThreadingHTTPServer((host, port), AuraHTTPHandler)
-    logger.info(f"AURA Desktop UI Simulator running at: http://{host}:{port}")
+    logger.info(f"AURA HUD running at http://{host}:{port}")
+    if not _is_loopback(host):
+        logger.warning(f"Listening on the network. Remote access URL: http://<device-ip>:{port}/?token={TOKEN}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        logger.info("UI Server shutting down...")
+        pass
     finally:
         server.server_close()
 
@@ -445,17 +369,8 @@ def run_ui_server(host: str = "127.0.0.1", port: int = 8765) -> None:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="AURA OS Desktop Shell Simulator Web Server")
-    parser.add_argument(
-        "--host",
-        default="127.0.0.1",
-        help="Host address to bind to (e.g. 0.0.0.0 for LAN access on Raspberry Pi)",
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8765,
-        help="Port number to listen on (default: 8765)",
-    )
-    args = parser.parse_args()
-    run_ui_server(host=args.host, port=args.port)
+    ap = argparse.ArgumentParser(description="AURA OS HUD web server")
+    ap.add_argument("--host", default=None, help="Bind address (default: ui.host, loopback)")
+    ap.add_argument("--port", type=int, default=None)
+    a = ap.parse_args()
+    run_ui_server(a.host, a.port)

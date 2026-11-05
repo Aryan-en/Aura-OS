@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from aura.agents.base import AgentInfo, AgentState
 from aura.agents.loop import ExecutionLoop
+from aura.agents.permissions import PermissionGate
 from aura.agents.planner import GoalPlanner
 from aura.memory.db import MemoryDB
 
@@ -16,9 +17,10 @@ from aura.memory.db import MemoryDB
 class AgentManager:
     """Central supervisor for all active and specialized OS agents."""
 
-    def __init__(self, memory_db: Optional[MemoryDB] = None) -> None:
+    def __init__(self, memory_db: Optional[MemoryDB] = None, gate: Optional[PermissionGate] = None) -> None:
         self.memory = memory_db
-        self.loop = ExecutionLoop(memory_db=memory_db)
+        self.gate = gate or PermissionGate()
+        self.loop = ExecutionLoop(memory_db=memory_db, gate=self.gate)
         self.agents: Dict[str, AgentInfo] = {
             "code": AgentInfo(name="Code Agent", role="Code synthesis, test execution, debugging"),
             "research": AgentInfo(name="Research Agent", role="Knowledge extraction, documentation, search"),

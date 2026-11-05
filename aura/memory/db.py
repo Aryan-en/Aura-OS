@@ -122,3 +122,11 @@ class MemoryDB:
             cursor = conn.execute("SELECT value FROM memory_items WHERE key = ?", (key,))
             row = cursor.fetchone()
             return row["value"] if row else None
+
+    def list_memory_items(self, limit: int = 50) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                "SELECT key, value, category, updated_at FROM memory_items ORDER BY updated_at DESC LIMIT ?",
+                (limit,),
+            )
+            return [dict(row) for row in cursor.fetchall()]
