@@ -28,8 +28,8 @@
 | **Current Version** | `v0.1.0-prealpha` |
 | **Current Phase** | **Phase 1: Voice MVP & Multimodal Runtime** |
 | **Current Milestone**| **M1 / M4.5 — Voice + Spatial Runtime Complete** |
-| **Overall Completion**| **65%** |
-| **Last Updated** | `2026-09-21` |
+| **Overall Completion**| **55%** (re-baselined: earlier 65% counted stubbed voice/vision as complete) |
+| **Last Updated** | `2026-11-05` |
 | **Active Focus** | All core subsystems operational; launching UI HUD simulator and VM verification |
 
 ### Subsystem Status Matrix
@@ -225,7 +225,13 @@
 
 | Bug ID | Subsystem | Description | Severity | Status | Workaround |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| *None* | — | No bugs identified at baseline bootstrap. | — | — | — |
+| BUG-001 | PKG | `pip install -e .` failed: non-PEP440 version and flat-layout package discovery | High | 🟢 Fixed | — |
+| BUG-002 | VOICE | Wake word never fired and STT returned a hardcoded string; no mic capture existed | Critical | 🟢 Fixed (needs on-device test) | — |
+| BUG-003 | SEC | HUD bound 0.0.0.0 with CORS `*`, unauthenticated shell + arbitrary file read | Critical | 🟢 Fixed | — |
+| BUG-004 | SEC | `requires_voice_confirmation` was never enforced; planner fallback shell-interpolated user text | Critical | 🟢 Fixed | — |
+| BUG-005 | UI | HUD memory panel showed hardcoded fake data (`MemoryDB()` misuse) | Medium | 🟢 Fixed | — |
+| BUG-006 | UI | Browser SpeechRecognition used for voice; unsupported in Chromium on Pi | High | 🟢 Fixed (voice is daemon-side) | — |
+| BUG-007 | VIS | No camera capture loop; gesture pipeline only reachable via IPC `vision.process_landmarks` | High | 🔴 Open | — |
 
 ---
 
@@ -320,6 +326,12 @@
 | 2026-09-21 | AI Engineer | `SYS-008` | Built structured logger (`aura/core/logger.py`) with parameter masking and log levels. |
 | 2026-09-21 | AI Engineer | `SYS-009` | Built `aura-cli` developer CLI (`ping`, `status`, `stop`) achieving sub-millisecond UDS latency (0.85ms). |
 
+| 2026-11-05 | AI Engineer | `PKG-001` | Fixed packaging; added board detection (`aura/core/hardware.py`), `config/rpi3.yaml` lite profile (Pi 3B+/1 GB, cloud STT/LLM). |
+| 2026-11-05 | AI Engineer | `VOICE-011` | Real voice pipeline: arecord capture, adaptive VAD, Whisper/Gemini STT, openWakeWord or transcript wake, espeak/Piper TTS, half-duplex echo guard, follow-ups. |
+| 2026-11-05 | AI Engineer | `AGENT-010` | `Brain` (local intents -> Gemini chat+tools -> offline planner) and `PermissionGate` (voice/HUD approval for shell, delete, power). |
+| 2026-11-05 | AI Engineer | `SEC-010` | HUD server hardening: loopback default, LAN token, origin/host checks, file roots, terminal off by default, secrets in `~/.config/aura/secrets.env`. |
+| 2026-11-05 | AI Engineer | `PKG-002` | Pi installer (`scripts/pi/install.sh`), systemd units incl. `aura-kiosk` (cage + Chromium) for boot-to-TV, `scripts/pi/doctor.py`. |
+
 ---
 
 ## Important Lessons Learned
@@ -331,6 +343,8 @@
 
 ## Next Session Objectives
 
-1. Complete `SYS-005`: Implement `aura/core/main.py` entrypoint with asyncio event loop and UDS socket server.
-2. Implement `SYS-006`: Write Makefile targets for VM provisioning and environment bootstrap (`make dev-setup`).
-3. Begin `VOICE-001`: Write the audio capture module binding to PipeWire.
+1. **Validate on real hardware** (nothing Pi-specific has run on a Pi yet): `make rpi-doctor`, mic levels/VAD threshold, HDMI audio device name, kiosk boot, Chromium memory on 1 GB.
+2. `VIS-001`: camera capture loop feeding `vision.process_landmarks` (Pi 4/5 only; off in lite profile).
+3. Train/ship a custom "Aura" openWakeWord model (built-in is "hey jarvis"); until then transcript-wake sends idle speech to Gemini.
+4. Acoustic echo cancellation (`VOICE-010`) to allow barge-in; currently half-duplex.
+5. Move HUD panels still showing static demo content (smart home, automations, notebook, research) onto real data.

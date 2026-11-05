@@ -7,6 +7,8 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Architecture Docs](https://img.shields.io/badge/Docs-Authoritative%20Architecture-purple.svg)](file:///Users/aryansingh/Documents/Aura-OS/context/ARCHITECTURE.md)
 
+> **Run it on a Raspberry Pi connected to a TV:** see [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md) (Pi 3B+ "lite" and Pi 4/5 "full" profiles).
+
 ---
 
 ## 1. Vision & Core Paradigm

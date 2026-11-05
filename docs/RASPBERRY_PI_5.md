@@ -1,3 +1,5 @@
+> **Using a Pi 3B+ / 1 GB board?** See [RASPBERRY_PI.md](RASPBERRY_PI.md) — the installer picks the right profile automatically.
+
 # Running AURA OS on Raspberry Pi 5
 
 This guide provides the authoritative, end-to-end instructions for deploying and running **AURA OS** natively on a **Raspberry Pi 5** single-board computer.
