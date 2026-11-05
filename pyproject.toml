@@ -34,6 +34,9 @@ vision = [
     "mediapipe>=0.10.14",
     "opencv-python>=4.9.0",
 ]
+kokoro = [
+    "kokoro-onnx>=0.4.0",
+]
 rpi = [
     "openwakeword>=0.6.0",
     "faster-whisper>=1.0.0",

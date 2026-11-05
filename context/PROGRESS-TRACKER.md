@@ -231,6 +231,7 @@
 | BUG-004 | SEC | `requires_voice_confirmation` was never enforced; planner fallback shell-interpolated user text | Critical | 🟢 Fixed | — |
 | BUG-005 | UI | HUD memory panel showed hardcoded fake data (`MemoryDB()` misuse) | Medium | 🟢 Fixed | — |
 | BUG-006 | UI | Browser SpeechRecognition used for voice; unsupported in Chromium on Pi | High | 🟢 Fixed (voice is daemon-side) | — |
+| BUG-008 | SYS | Event bus let payload `id` overwrite the event id (found by tests) | High | 🟢 Fixed | — |
 | BUG-007 | VIS | No camera capture loop; gesture pipeline only reachable via IPC `vision.process_landmarks` | High | 🔴 Open | — |
 
 ---
@@ -331,6 +332,10 @@
 | 2026-11-05 | AI Engineer | `AGENT-010` | `Brain` (local intents -> Gemini chat+tools -> offline planner) and `PermissionGate` (voice/HUD approval for shell, delete, power). |
 | 2026-11-05 | AI Engineer | `SEC-010` | HUD server hardening: loopback default, LAN token, origin/host checks, file roots, terminal off by default, secrets in `~/.config/aura/secrets.env`. |
 | 2026-11-05 | AI Engineer | `PKG-002` | Pi installer (`scripts/pi/install.sh`), systemd units incl. `aura-kiosk` (cage + Chromium) for boot-to-TV, `scripts/pi/doctor.py`. |
+
+| 2026-11-05 | AI Engineer | `MEM-010` | Obsidian-compatible Vault (raw/wiki/outputs), vault tools, raw->wiki compiler, HUD Vault screen. |
+| 2026-11-05 | AI Engineer | `SKILL-001` | Skill backbone: SKILL.md registry, 4 built-in skills, 30-day interaction audit, voice-dump->draft skills (approval required), HUD Skills screen. |
+| 2026-11-05 | AI Engineer | `AGENT-011` | 3-tier Router (instant / fast model / worker CLI with approval + background jobs); interaction log; Kokoro TTS backend (untested: needs model files). |
 
 ---
 

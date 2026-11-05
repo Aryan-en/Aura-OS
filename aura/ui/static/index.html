@@ -2006,66 +2006,50 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
         </div>
       </div>
 
-      <!-- ================= 7. NOTEBOOK VIEW PANEL ================= -->
+      <!-- ================= 7. VAULT (MEMORY LAYER) ================= -->
       <div class="view-panel" id="view-notebook">
-        <div class="view-card" style="display: flex; flex-direction: column; height: 550px;">
+        <div class="view-card" style="display:flex;flex-direction:column;min-height:560px;">
           <div class="card-header-row">
-            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">AURA Intelligent Notebook</h2>
-            <button class="btn-action" onclick="saveNotebook()">Save Note</button>
+            <h2 style="font-size:18px;font-weight:800;color:#fff;">Memory Vault <span style="font-size:12px;font-weight:400;color:var(--text-muted)">raw &rarr; wiki &rarr; outputs (Obsidian-compatible markdown)</span></h2>
+            <div style="display:flex;gap:8px;">
+              <input class="setting-input" id="vault-search" placeholder="Search vault..." style="width:200px;" onkeydown="if(event.key==='Enter')vaultSearch()">
+              <button class="btn-action" onclick="vaultCompile()">Update wiki</button>
+            </div>
           </div>
-          <input type="text" class="setting-input" style="font-size: 16px; font-weight: 700; margin-bottom: 12px;" id="notebook-title" value="My Plan & Architecture Notes">
-          <textarea class="setting-input" style="flex: 1; resize: none; font-family: 'JetBrains Mono', monospace; line-height: 1.5;" id="notebook-content"># AURA OS Notes
-- Rein Driver integration
-- Multimodal hand gesture raycasting
-- Real-time PipeWire audio streaming
-- Autonomous Google Gemini task decomposition</textarea>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button class="btn-secondary vault-tab" data-area="raw" onclick="vaultList('raw')">Inbox (raw)</button>
+            <button class="btn-secondary vault-tab" data-area="wiki" onclick="vaultList('wiki')">Wiki</button>
+            <button class="btn-secondary vault-tab" data-area="outputs" onclick="vaultList('outputs')">Outputs</button>
+          </div>
+          <div style="display:flex;gap:14px;flex:1;min-height:380px;">
+            <div id="vault-list" style="width:34%;overflow:auto;border-right:1px solid rgba(255,255,255,.08);padding-right:10px;font-size:13px;"></div>
+            <div style="flex:1;display:flex;flex-direction:column;">
+              <div id="vault-reader" style="flex:1;overflow:auto;white-space:pre-wrap;font-size:13.5px;line-height:1.55;color:var(--text-secondary);">Select a note.</div>
+              <form onsubmit="vaultCapture(event)" style="display:flex;gap:8px;margin-top:10px;">
+                <input class="setting-input" id="vault-capture" placeholder="Quick capture to inbox... (or say: &quot;Aura, note that ...&quot;)" style="flex:1;">
+                <button class="btn-action" type="submit">Capture</button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- ================= 8. AUTOMATION VIEW PANEL ================= -->
+      <!-- ================= 8. SKILLS & ROUTER ================= -->
       <div class="view-panel" id="view-automation">
         <div class="view-card">
           <div class="card-header-row">
-            <h2 style="font-size: 18px; font-weight: 800; color: #fff;">Automations & Routine Engine</h2>
-            <button class="btn-action" onclick="submitGoal('create an automation rule for morning startup')">+ New Routine</button>
+            <h2 style="font-size:18px;font-weight:800;color:#fff;">Skills &amp; Router</h2>
+            <button class="btn-action" onclick="skillsAudit()">Audit last 30 days</button>
           </div>
-          <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 16px;">
-            Trigger event-based actions and ambient intelligence routines when presence or voice signals occur.
-          </p>
-          <div class="settings-grid">
-            <div class="settings-group">
-              <div class="setting-row">
-                <div class="setting-label">
-                  <h5>Study Mode Trigger</h5>
-                  <span>Turns off notification rings, opens notes</span>
-                </div>
-                <button class="btn-action" onclick="toggleAutomation('study', true)">Run Now</button>
-              </div>
-              <div class="setting-row">
-                <div class="setting-label">
-                  <h5>Sleep Mode Routine</h5>
-                  <span>Silences TTS, halts camera tracking</span>
-                </div>
-                <button class="btn-action" onclick="toggleAutomation('sleep', true)">Run Now</button>
-              </div>
-            </div>
-            <div class="settings-group">
-              <div class="setting-row">
-                <div class="setting-label">
-                  <h5>Gym Mode Flow</h5>
-                  <span>Launches workout playlist & timers</span>
-                </div>
-                <button class="btn-action" onclick="toggleAutomation('gym', true)">Run Now</button>
-              </div>
-              <div class="setting-row">
-                <div class="setting-label">
-                  <h5>Focus Mode Shield</h5>
-                  <span>Isolates active IDE with high priority</span>
-                </div>
-                <button class="btn-action" onclick="toggleAutomation('focus', true)">Run Now</button>
-              </div>
-            </div>
-          </div>
+          <p id="router-stats" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:14px;">Loading router...</p>
+          <h4 style="color:#fff;margin:8px 0;">Skills</h4>
+          <div id="skills-list" class="settings-group"></div>
+          <h4 style="color:#fff;margin:16px 0 8px;">Drafts awaiting approval</h4>
+          <div id="skills-drafts" class="settings-group"><div style="font-size:12px;color:var(--text-muted)">None.</div></div>
+          <h4 style="color:#fff;margin:16px 0 8px;">Describe your workday (voice-dump)</h4>
+          <textarea class="setting-input" id="voice-dump" rows="5" style="width:100%;resize:vertical;" placeholder="Paste or dictate 10-20 minutes of what you do each day. Aura drafts skills from it."></textarea>
+          <div style="margin-top:8px;"><button class="btn-action" onclick="skillsFromDump()">Draft skills</button></div>
+          <pre id="audit-out" style="margin-top:14px;white-space:pre-wrap;font-size:12px;color:var(--text-secondary);"></pre>
         </div>
       </div>
 
@@ -2343,6 +2327,8 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
       if (viewName === 'settings') loadSettings();
       if (viewName === 'system') fetchStatus();
       if (viewName === 'research') fetchMemory();
+      if (viewName === 'notebook') vaultList();
+      if (viewName === 'automation') loadSkills();
       if (viewName === 'browser') navigateBrowser();
     }
 
@@ -2896,22 +2882,92 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
       else submitGoal(`launch ${appName}`);
     }
 
-    function toggleAutomation(modeName, state) {
-      const on = state !== undefined ? state : true;
-      speakText(`${modeName} mode ${on ? 'activated' : 'deactivated'}.`);
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    async function rpcGet(m, q) { const r = await fetch('/api/x/' + m + (q ? '?' + new URLSearchParams(q) : '')); return r.json(); }
+    async function rpcPost(m, body) {
+      const r = await fetch('/api/x/' + m, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+      return r.json();
     }
 
-    function saveNotebook() {
-      const title = document.getElementById('notebook-title').value;
-      const content = document.getElementById('notebook-content').value;
-      fetch('/api/memory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: title, value: content, category: 'notebook' })
-      }).then(() => {
-        alert('Note saved to AURA Memory Vault!');
-      });
+    // ---- Vault (memory layer) ----
+    let vaultArea = 'raw';
+    async function vaultList(area) {
+      vaultArea = area || vaultArea;
+      document.querySelectorAll('.vault-tab').forEach(b => b.style.opacity = b.dataset.area === vaultArea ? 1 : .55);
+      const d = await rpcGet('vault.list', { area: vaultArea });
+      const box = document.getElementById('vault-list');
+      if (!d.items || !d.items.length) { box.innerHTML = '<div style="color:var(--text-muted)">Empty.</div>'; return; }
+      box.innerHTML = d.items.map(i => `<div class="recent-file-item" data-p="${esc(i.path)}" style="cursor:pointer;padding:6px 4px;">
+        ${esc(i.title)}${i.status === 'new' ? ' <span style="color:#22D3EE">&bull; new</span>' : ''}</div>`).join('');
+      box.querySelectorAll('[data-p]').forEach(el => el.onclick = () => vaultOpen(el.dataset.p));
     }
+    async function vaultOpen(path) {
+      const d = await rpcGet('vault.read', { path });
+      document.getElementById('vault-reader').textContent = d.error ? d.error : d.title + '\n\n' + d.body;
+    }
+    async function vaultSearch() {
+      const q = document.getElementById('vault-search').value.trim();
+      if (!q) return vaultList();
+      const d = await rpcGet('vault.search', { q });
+      const box = document.getElementById('vault-list');
+      box.innerHTML = (d.results || []).map(r => `<div class="recent-file-item" data-p="${esc(r.path)}" style="cursor:pointer;padding:6px 4px;">
+        ${esc(r.title)}<div style="font-size:11px;color:var(--text-muted)">${esc(r.area)} &middot; ${esc(r.snippet).slice(0, 80)}</div></div>`).join('') || '<div style="color:var(--text-muted)">No matches.</div>';
+      box.querySelectorAll('[data-p]').forEach(el => el.onclick = () => vaultOpen(el.dataset.p));
+    }
+    async function vaultCapture(e) {
+      e.preventDefault();
+      const el = document.getElementById('vault-capture'); const text = el.value.trim();
+      if (!text) return;
+      await rpcPost('vault.add', { title: text.slice(0, 50), text }); el.value = ''; vaultList('raw');
+      showCaption('Aura', 'Saved to your inbox.');
+    }
+    async function vaultCompile() {
+      showCaption('Aura', 'Organising your notes...');
+      const d = await rpcPost('vault.compile', {});
+      showCaption('Aura', d.reply || d.error || 'Done.'); vaultList('wiki');
+    }
+
+    // ---- Skills & router ----
+    async function loadSkills() {
+      const [sk, st] = await Promise.all([rpcGet('skills.list'), rpcGet('router.stats')]);
+      const t = st.by_tier || {};
+      document.getElementById('router-stats').textContent =
+        `Router — Tier 1 instant: ${t[1] || 0} | Tier 2 ${st.fast_model || ''}: ${t[2] || 0} | Tier 3 worker (${st.tier3_worker || 'n/a'}): ${t[3] || 0}`;
+      document.getElementById('skills-list').innerHTML = (sk.skills || []).map(s => `<div class="setting-row">
+        <div class="setting-label"><h5>${esc(s.name)} <span style="font-size:10px;color:#22D3EE">tier ${s.tier}</span></h5>
+        <span>${esc(s.description)}${s.triggers.length ? ' &mdash; say: &ldquo;' + esc(s.triggers[0]) + '&rdquo;' : ''}</span></div>
+        <button class="btn-action" onclick="runSkill('${esc(s.name)}')">Run</button></div>`).join('');
+      const dr = sk.drafts || [];
+      if (dr.length) document.getElementById('skills-drafts').innerHTML = dr.map(s => `<div class="setting-row">
+        <div class="setting-label"><h5>${esc(s.name)} <span style="font-size:10px;color:#A855F7">draft</span></h5><span>${esc(s.description)}</span></div>
+        <div><button class="btn-action" onclick="draftAct('approve','${esc(s.name)}')">Approve</button>
+        <button class="btn-secondary" onclick="draftAct('reject','${esc(s.name)}')">Reject</button></div></div>`).join('');
+      else document.getElementById('skills-drafts').innerHTML = '<div style="font-size:12px;color:var(--text-muted)">None.</div>';
+    }
+    async function runSkill(name) { const d = await rpcPost('skills.run', { name }); if (d.error) showCaption('Aura', d.error); else if (d.reply) speakText(d.reply); loadSkills(); }
+    async function draftAct(act, name) { await rpcPost('skills.' + act, { name }); loadSkills(); }
+    async function skillsAudit() {
+      const out = document.getElementById('audit-out'); out.textContent = 'Auditing...';
+      const d = await rpcPost('skills.audit', { days: 30 });
+      if (d.error) { out.textContent = d.error; return; }
+      out.textContent = `${d.interactions} interactions in ${d.days} days\nRepeated requests:\n` +
+        (d.repeated || []).map(r => `  ${r.count}x  ${r.examples[0]}`).join('\n') +
+        ((d.suggestions || []).length ? '\n\nSuggested skills:\n' + d.suggestions.map(s => `  ${s.name}: ${s.description}`).join('\n') : '') +
+        (d.note ? '\n\n' + d.note : '');
+    }
+    async function skillsFromDump() {
+      const text = document.getElementById('voice-dump').value;
+      const d = await rpcPost('skills.from_voice_dump', { text });
+      showCaption('Aura', d.error ? d.error : `Drafted ${d.drafts.length} skill(s). Review them below.`); loadSkills();
+    }
+
+    function toggleAutomation(modeName, state) {
+      const skill = { focus: 'focus-mode' }[modeName];
+      if (skill && state !== false) return runSkill(skill);
+      speakText(`There is no ${modeName} skill yet. Create one from the Skills screen.`);
+    }
+
+    async function saveNotebook() { vaultCapture({ preventDefault() {} }); }
 
     function addWorkspace() {
       const name = prompt('Enter new workspace name:');

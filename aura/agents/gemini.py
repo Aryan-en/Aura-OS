@@ -121,6 +121,12 @@ class GeminiClient:
             logger.error(f"Gemini connection error: {e}")
             return {"success": False, "error": str(e)}
 
+    def generate_text(self, prompt: str, system: Optional[str] = None, json_mode: bool = False,
+                      max_tokens: int = 2048) -> str:
+        """One-shot text generation (used by the vault compiler and skill audit). Raises on failure."""
+        return self._generate([{"role": "user", "parts": [{"text": prompt}]}], system=system,
+                              json_mode=json_mode, temperature=0.3, max_tokens=max_tokens)
+
     def transcribe(self, pcm: bytes, sample_rate: int = 16000) -> str:
         """Cloud speech-to-text for a raw PCM utterance. Returns '' if no speech."""
         wav = pcm_to_wav(pcm, sample_rate)

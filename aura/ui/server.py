@@ -43,6 +43,14 @@ MAX_FILE_BYTES = 64 * 1024
 SENSITIVE_NAMES = {".env", "secrets.env", "ui_token", "id_rsa", "id_ed25519", "authorized_keys", ".netrc"}
 SENSITIVE_DIRS = {".ssh", ".gnupg", ".aws"}
 
+# IPC methods the HUD may call generically (vault/skills/router). Everything else needs a dedicated route.
+READ_RPCS = {"vault.list", "vault.read", "vault.search", "skills.list", "router.stats"}
+WRITE_RPCS = {"vault.add", "vault.compile", "skills.run", "skills.approve", "skills.reject",
+              "skills.audit", "skills.from_voice_dump"}
+
+SLOW_RPCS = {"voice.interact", "agent.submit_goal", "skills.run", "vault.compile",
+             "skills.audit", "skills.from_voice_dump"}
+
 _cfg = AuraConfig.load()
 
 
@@ -148,8 +156,10 @@ class AuraHTTPHandler(http.server.BaseHTTPRequestHandler):
         return data if isinstance(data, dict) else {}
 
     async def _ipc(self, method: str, params: Optional[dict] = None) -> Any:
+        # Calls that may legitimately wait on the user (approval prompts) or an LLM get a long timeout.
+        timeout = 75.0 if method in SLOW_RPCS else None
         async with AuraIPCClient(socket_path=get_default_socket_path()) as client:
-            return await client.call(method, params or {})
+            return await client.call(method, params or {}, timeout=timeout)
 
     def _ipc_json(self, method: str, params: Optional[dict] = None, fallback: Optional[dict] = None) -> None:
         try:
@@ -197,6 +207,14 @@ class AuraHTTPHandler(http.server.BaseHTTPRequestHandler):
         if path in routes:
             method, params, fb = routes[path]
             self._ipc_json(method, params, fb)
+            return
+
+        if path.startswith("/api/x/"):
+            method = path[len("/api/x/"):]
+            if method in READ_RPCS:
+                self._ipc_json(method, {k: v[0] for k, v in q.items() if k != "token"})
+                return
+            self._send(404, b"Not Found", "text/plain")
             return
 
         if path == "/api/events":
@@ -278,7 +296,13 @@ class AuraHTTPHandler(http.server.BaseHTTPRequestHandler):
             return
 
         try:
-            if path == "/api/goal":
+            if path.startswith("/api/x/"):
+                method = path[len("/api/x/"):]
+                if method not in READ_RPCS | WRITE_RPCS:
+                    self._json(404, {"error": "Endpoint not found"})
+                else:
+                    self._ipc_json(method, body)
+            elif path == "/api/goal":
                 self._ipc_json("agent.submit_goal", {"goal": body.get("prompt") or body.get("goal")})
             elif path == "/api/confirm":
                 self._ipc_json("agent.confirm", {"approved": bool(body.get("approved"))})

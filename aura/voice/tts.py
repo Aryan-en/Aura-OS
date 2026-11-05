@@ -17,6 +17,17 @@ from typing import List, Optional
 
 from aura.core.logger import logger
 
+KOKORO_DIR = Path.home() / ".local/share/kokoro"
+
+
+def kokoro_ready() -> bool:
+    """Kokoro (local neural TTS, ~80 MB ONNX): needs `pip install kokoro-onnx` + the two model files."""
+    try:
+        import kokoro_onnx  # noqa: F401
+    except ImportError:
+        return False
+    return (KOKORO_DIR / "kokoro-v1.0.onnx").is_file() and (KOKORO_DIR / "voices-v1.0.bin").is_file()
+
 
 def find_piper_model(voice: str) -> Optional[Path]:
     if voice.endswith(".onnx") and Path(voice).is_file():
@@ -51,6 +62,8 @@ class TextToSpeech:
             if want == "auto":
                 if platform.system() == "Darwin" and shutil.which("say"):
                     choices.append("say")
+                if kokoro_ready():
+                    choices.append("kokoro")
                 if shutil.which("piper") and find_piper_model(self.voice):
                     choices.append("piper")
                 if shutil.which("espeak-ng") or shutil.which("espeak"):
@@ -64,6 +77,7 @@ class TextToSpeech:
     def _usable(self, name: str) -> bool:
         return {
             "say": bool(shutil.which("say")),
+            "kokoro": kokoro_ready(),
             "piper": bool(shutil.which("piper") and find_piper_model(self.voice)),
             "espeak": bool(shutil.which("espeak-ng") or shutil.which("espeak")),
             "none": True,
@@ -83,6 +97,27 @@ class TextToSpeech:
                     f"--output-raw | aplay -q {dev} -r 22050 -f S16_LE -t raw -")
         return None
 
+    def _kokoro_synth(self, text: str) -> Optional[str]:
+        import tempfile
+        import wave
+
+        import numpy as np
+        from kokoro_onnx import Kokoro
+
+        if getattr(self, "_kokoro", None) is None:
+            self._kokoro = Kokoro(str(KOKORO_DIR / "kokoro-v1.0.onnx"), str(KOKORO_DIR / "voices-v1.0.bin"))
+        samples, rate = self._kokoro.create(text, voice=os.environ.get("AURA_KOKORO_VOICE", "af_heart"),
+                                            speed=1.0, lang="en-us")
+        pcm = (np.clip(samples, -1, 1) * 32767).astype(np.int16)
+        fd, path = tempfile.mkstemp(suffix=".wav", prefix="aura-tts-")
+        os.close(fd)
+        with wave.open(path, "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(rate)
+            w.writeframes(pcm.tobytes())
+        return path
+
     async def speak(self, text: str) -> None:
         self.stop()
         text = text.strip()
@@ -91,6 +126,19 @@ class TextToSpeech:
         self.is_speaking = True
         logger.info(f'AURA speaking: "{text}"')
         try:
+            if self.backend == "kokoro":
+                wav = await asyncio.to_thread(self._kokoro_synth, text)
+                player = shutil.which("afplay") or shutil.which("aplay") or shutil.which("paplay")
+                if wav is None or player is None:
+                    return
+                dev = ["-D", self.output_device] if self.output_device and player.endswith("aplay") else []
+                quiet = ["-q"] if player.endswith("aplay") else []
+                self._proc = await asyncio.create_subprocess_exec(
+                    player, *quiet, *dev, wav, stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL, start_new_session=True)
+                await self._proc.wait()
+                Path(wav).unlink(missing_ok=True)
+                return
             cmd = self._command(self.backend)
             if cmd is None:
                 await asyncio.sleep(min(6.0, max(0.2, len(text) * 0.04)))  # silent: simulate duration

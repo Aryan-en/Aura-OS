@@ -21,7 +21,7 @@ class EventBus:
         self._subs: List[Callable[[Event], None]] = []
 
     def emit(self, type_: str, **data: Any) -> Event:
-        ev: Event = {"id": next(self._ids), "ts": time.time(), "type": type_, **data}
+        ev: Event = {**data, "id": next(self._ids), "ts": time.time(), "type": type_}  # reserved keys win
         self._events.append(ev)
         for cb in list(self._subs):
             try:

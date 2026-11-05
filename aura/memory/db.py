@@ -60,6 +60,16 @@ class MemoryDB:
                 timestamp REAL NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS interactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT NOT NULL,
+                tier INTEGER NOT NULL,
+                handler TEXT NOT NULL,
+                success INTEGER NOT NULL,
+                duration_ms REAL NOT NULL,
+                timestamp REAL NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS memory_items (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL,
@@ -130,3 +140,17 @@ class MemoryDB:
                 (limit,),
             )
             return [dict(row) for row in cursor.fetchall()]
+
+    def record_interaction(self, text: str, tier: int, handler: str, success: bool, duration_ms: float) -> None:
+        with self._get_connection() as conn:
+            conn.execute(
+                "INSERT INTO interactions (text, tier, handler, success, duration_ms, timestamp) VALUES (?,?,?,?,?,?)",
+                (text, tier, handler, int(success), duration_ms, time.time()),
+            )
+
+    def list_interactions(self, since_ts: float = 0.0, limit: int = 5000) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cur = conn.execute(
+                "SELECT text, tier, handler, success, duration_ms, timestamp FROM interactions "
+                "WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT ?", (since_ts, limit))
+            return [dict(r) for r in cur.fetchall()]

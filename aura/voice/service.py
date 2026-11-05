@@ -115,11 +115,23 @@ class VoiceService:
 
     def _on_bus_event(self, ev: Dict[str, Any]) -> None:
         """Speak confirmation prompts and open the mic for the answer."""
+        if ev["type"] == "job.done":
+            try:
+                self._spawn(self._announce_job(ev["reply"]))
+            except RuntimeError:
+                pass
         if ev["type"] == "confirm.request" and ev.get("voice"):
             try:
                 self._spawn(self._ask_confirmation(ev["description"], float(ev.get("timeout", 30))))
             except RuntimeError:
                 pass  # no running loop (sync tests)
+
+    async def _announce_job(self, text: str) -> None:
+        for _ in range(60):  # wait (up to ~1 min) until we are not mid-conversation
+            if self.state == VoiceState.WAIT_WAKE:
+                break
+            await asyncio.sleep(1)
+        await self._say(text)
 
     async def _ask_confirmation(self, description: str, timeout: float) -> None:
         await self._say(f"Do you want me to {description.split(' (')[0]}? Say confirm or cancel.")

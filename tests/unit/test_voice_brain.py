@@ -125,3 +125,8 @@ def test_planner_fallback_never_shells_user_text() -> None:
 
     dag = GoalPlanner.plan("hello '; rm -rf ~ #")
     assert all(t.tool_name is None for t in dag.tasks.values())
+
+
+def test_event_bus_reserved_keys_cannot_be_overwritten() -> None:
+    ev = bus.emit("x", id="job-1", type="evil", ts="no")
+    assert isinstance(ev["id"], int) and ev["type"] == "x" and isinstance(ev["ts"], float)

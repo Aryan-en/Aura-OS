@@ -17,6 +17,7 @@ from typing import Any, Dict, Optional
 from aura import __version__
 from aura.agents.manager import AgentManager
 from aura.agents.permissions import PermissionGate
+from aura.agents.router import Router
 from aura.context.manager import ContextEngine
 from aura.core.config import AuraConfig
 from aura.core.events import bus
@@ -24,7 +25,10 @@ from aura.core.logger import logger, setup_logger
 from aura.ipc.protocol import IPCRequest
 from aura.ipc.server import AsyncUnixSocketServer
 from aura.memory.db import MemoryDB
+from aura.skills import SkillRegistry
+from aura.skills.audit import audit_history, from_voice_dump
 from aura.tools.registry import registry
+from aura.vault import Vault, set_vault
 from aura.vision.fusion import MultimodalFusionEngine
 from aura.vision.gestures import GestureClassifier
 from aura.vision.landmarks import HandLandmarks
@@ -45,7 +49,11 @@ class AuraDaemon:
         self.memory = MemoryDB(db_path=self.config.agent.sqlite_db_path)
         self.gate = PermissionGate(voice_can_confirm=self.config.security.enforce_voice_confirmation)
         self.agents = AgentManager(memory_db=self.memory, gate=self.gate)
-        self.voice = VoiceService(agent_manager=self.agents, config=self.config)
+        self.vault = Vault(self.config.vault.path)
+        set_vault(self.vault)
+        self.skills = SkillRegistry()
+        self.router = Router(self.agents, self.vault, self.skills, self.memory, self.config.router)
+        self.voice = VoiceService(agent_manager=self.agents, config=self.config, brain=self.router)  # type: ignore[arg-type]
         self.mic = MicCapture(self.config.voice.sample_rate, self.config.voice.input_device)
         self._voice_task: Optional[asyncio.Task[None]] = None
         self.context = ContextEngine()
@@ -86,6 +94,20 @@ class AuraDaemon:
         self.ipc_server.register("events.poll", self._handle_events_poll)
         self.ipc_server.register("agent.confirm", self._handle_confirm)
         self.ipc_server.register("core.set_gemini", self._handle_set_gemini)
+        self.ipc_server.register("vault.list", self._rpc(lambda p: {"items": self.vault.list(p.get("area"))}))
+        self.ipc_server.register("vault.read", self._rpc(lambda p: self.vault.read(str(p.get("path", "")))))
+        self.ipc_server.register("vault.search", self._rpc(lambda p: {"results": self.vault.search(str(p.get("q", "")), 10)}))
+        self.ipc_server.register("vault.add", self._rpc(lambda p: {"path": self.vault.add_raw(
+            str(p.get("title") or "Note"), str(p.get("text", "")), source="hud")}))
+        self.ipc_server.register("vault.compile", self._handle_vault_compile)
+        self.ipc_server.register("skills.list", self._rpc(lambda p: {
+            "skills": self.skills.list(), "drafts": self.skills.list(drafts=True)}))
+        self.ipc_server.register("skills.run", self._handle_skill_run)
+        self.ipc_server.register("skills.approve", self._rpc(lambda p: {"ok": self.skills.approve(str(p.get("name", "")))}))
+        self.ipc_server.register("skills.reject", self._rpc(lambda p: {"ok": self.skills.reject(str(p.get("name", "")))}))
+        self.ipc_server.register("skills.audit", self._handle_audit)
+        self.ipc_server.register("skills.from_voice_dump", self._handle_voice_dump)
+        self.ipc_server.register("router.stats", self._rpc(lambda p: self.router.stats()))
         self.ipc_server.register("memory.list", self._handle_memory_list)
         self.ipc_server.register("memory.set", self._handle_memory_set)
 
@@ -102,15 +124,47 @@ class AuraDaemon:
         return {"events": bus.since(since), "last_id": bus.last_id,
                 "voice": self.voice.get_status() if request.params.get("voice") else None}
 
+    @staticmethod
+    def _rpc(fn: Any) -> Any:
+        """Wrap a sync (params)->dict function as an IPC handler."""
+        async def handler(request: IPCRequest) -> Dict[str, Any]:
+            return fn(request.params)  # type: ignore[no-any-return]
+        return handler
+
+    async def _handle_vault_compile(self, request: IPCRequest) -> Dict[str, Any]:
+        return await self.router.compile_wiki()
+
+    async def _handle_skill_run(self, request: IPCRequest) -> Dict[str, Any]:
+        skill = self.skills.get(str(request.params.get("name", "")))
+        if not skill:
+            raise ValueError("Unknown skill")
+        out = await self.router.run_skill(skill, str(request.params.get("args", "")))
+        self.voice.history.append({"timestamp": time.time(), "prompt": f"skill:{skill.name}",
+                                   "response": out["reply"], "success": out["success"]})
+        bus.emit("voice.reply", prompt=f"skill:{skill.name}", response=out["reply"])
+        return out
+
+    async def _handle_audit(self, request: IPCRequest) -> Dict[str, Any]:
+        tools = [t.name for t in registry.get_definitions()]
+        return await asyncio.to_thread(
+            audit_history, self.memory, int(request.params.get("days", 30)), self.router._llm(), tools)
+
+    async def _handle_voice_dump(self, request: IPCRequest) -> Dict[str, Any]:
+        tools = [t.name for t in registry.get_definitions()]
+        return await asyncio.to_thread(
+            from_voice_dump, str(request.params.get("text", "")), self.router._llm(), self.skills, tools)
+
     async def _handle_set_gemini(self, request: IPCRequest) -> Dict[str, Any]:
         """Hot-apply a new Gemini key/model to every component that talks to Gemini."""
         key = str(request.params.get("api_key", "")).strip()
         model = str(request.params.get("model", "")).strip()
-        for client in (self.voice.brain.gemini, self.voice.stt._gemini_client()):
+        for client in (*self.router.clients, self.voice.stt._gemini_client()):
             if key:
                 client.api_key = key
             if model:
                 client.model = model
+        for c in self.router.clients[1:2]:  # the fast client keeps its own (small) model
+            c.model = self.config.router.fast_model
         self.voice.stt._backend = None  # re-resolve (cloud STT may have just become available)
         return {"configured": self.voice.brain.gemini.is_configured(), "stt": self.voice.stt.backend}
 

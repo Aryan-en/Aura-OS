@@ -40,7 +40,9 @@ Use "actions": [] when no device action is needed. Only use these tools:
 {tools}
 HUD screens for ui.open_view: {views}.
 Shell commands and deletions will ask the user to confirm first. Never invent tool names.
-Current local time: {now}."""
+If the request needs multi-step coding, building something, long research or a full report, set
+"escalate": true and make "reply" a short acknowledgement; a more capable worker will take over.
+{context}Current local time: {now}."""
 
 
 class Brain:
@@ -131,12 +133,18 @@ class Brain:
         return {"reply": reply} if res["success"] else {"reply": "I can't control the volume on this device.", "error": res["error"]}
 
     # ------------------------------------------------------------------ main entry
-    async def handle(self, text: str) -> Dict[str, Any]:
-        """Returns {reply, success, source}."""
+    async def try_local(self, text: str) -> Optional[Dict[str, Any]]:
+        """Tier-1 device intents (no AI). None when the text is not a known command."""
+        local = await self._local_intent(text.strip())
+        return None if local is None else {"success": "error" not in local, "source": "local", **local}
+
+    async def handle(self, text: str, context: str = "", skip_local: bool = False) -> Dict[str, Any]:
+        """Returns {reply, success, source[, escalate]}."""
         text = text.strip()
-        local = await self._local_intent(text)
-        if local is not None:
-            return {"success": "error" not in local, "source": "local", **local}
+        if not skip_local:
+            local = await self.try_local(text)
+            if local is not None:
+                return local
 
         if self.gemini.is_configured():
             import asyncio
@@ -145,10 +153,13 @@ class Brain:
                 tools="\n".join(f"- {d.name}: {d.description} params={list(d.parameters)}"
                                 for d in registry.get_definitions()),
                 views=", ".join(VIEWS),
+                context=(f"Relevant notes from the user's vault (use if helpful):\n{context}\n" if context else ""),
                 now=time.strftime("%A %d %B %Y, %I:%M %p"),
             )
             out = await asyncio.to_thread(self.gemini.chat_json, self.history[-8:], text, system)
             if out and isinstance(out.get("reply"), str):
+                if out.get("escalate") is True:
+                    return {"success": True, "source": "gemini", "reply": out["reply"], "escalate": True}
                 err = None
                 actions = out.get("actions")
                 if isinstance(actions, list) and actions:

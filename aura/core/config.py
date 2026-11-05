@@ -137,6 +137,20 @@ class GeminiConfig(BaseModel):
     timeout_sec: float = Field(default=20.0, gt=0.0)
 
 
+class VaultConfig(BaseModel):
+    """Obsidian-compatible memory vault (open this folder in Obsidian to browse it)."""
+    path: str = Field(default="~/AuraVault")
+
+
+class RouterConfig(BaseModel):
+    """Three-tier request router."""
+    fast_model: str = Field(default="gemini-2.5-flash-lite", description="Tier 2: small, fast model")
+    tier3_command: str = Field(default="auto", description="Tier 3 worker: auto | claude | codex | none")
+    tier3_args: list[str] = Field(default_factory=list, description="Extra CLI args for the tier 3 worker")
+    tier3_workspace: str = Field(default="~/aura-workspace")
+    tier3_timeout_sec: float = Field(default=900.0, gt=0.0)
+
+
 class UIConfig(BaseModel):
     """HUD web server configuration."""
     host: str = Field(default="127.0.0.1", description="Bind address. Keep loopback unless needed.")
@@ -157,6 +171,8 @@ class AuraConfig(BaseModel):
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     gemini: GeminiConfig = Field(default_factory=GeminiConfig)
     ui: UIConfig = Field(default_factory=UIConfig)
+    vault: VaultConfig = Field(default_factory=VaultConfig)
+    router: RouterConfig = Field(default_factory=RouterConfig)
 
     @classmethod
     def load(cls, config_path: Optional[Path] = None) -> AuraConfig:
