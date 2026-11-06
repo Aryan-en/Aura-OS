@@ -1530,24 +1530,35 @@
         </li>
       </ul>
 
-      <!-- Bottom Music Player Widget -->
-      <div class="sidebar-music-card">
-        <div class="music-art">♪</div>
+      <!-- Music Player Widget (YouTube Music via YouTube's official embedded player) -->
+      <div class="sidebar-music-card" style="flex-wrap:wrap;">
+        <div class="music-art" id="music-art" style="background-size:cover;background-position:center;">&#9834;</div>
         <div class="music-info">
-          <div class="music-title" id="music-title-text">Blinding Lights</div>
-          <div class="music-artist">The Weeknd</div>
+          <div class="music-title" id="music-title-text">Nothing playing</div>
+          <div class="music-artist" id="music-artist-text">Say &ldquo;Aura, play &hellip;&rdquo;</div>
         </div>
         <div class="music-controls">
-          <button class="music-btn" title="Previous Track" onclick="toggleMusic(false)">
+          <button class="music-btn" title="Previous Track" onclick="musicControl('previous')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="3"/></svg>
           </button>
-          <button class="music-btn" id="music-play-btn" title="Play/Pause" onclick="toggleMusic(true)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <button class="music-btn" id="music-play-btn" title="Play/Pause" onclick="musicControl('toggle')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           </button>
-          <button class="music-btn" title="Next Track" onclick="toggleMusic(false)">
+          <button class="music-btn" title="Next Track" onclick="musicControl('next')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"/></svg>
           </button>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;color:var(--text-muted);font-size:11px;">
+          <span id="vol-icon" title="System volume (real audio output)">&#128266;</span>
+          <input type="range" id="vol-slider" min="0" max="100" value="50" style="flex:1;accent-color:#22D3EE;"
+                 oninput="volSliderInput(this.value)" aria-label="System volume">
+          <span id="vol-pct" style="width:30px;text-align:right;">--</span>
+        </div>
+        <div id="music-source" style="font-size:10px;color:var(--text-muted);width:100%;margin-top:2px;"></div>
+        <!-- YouTube requires the player to stay visible (min 200x200); it is shown only while music is active. -->
+        <div id="yt-wrap" style="display:none;width:100%;margin-top:10px;text-align:center;"><div id="yt-player"></div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Sign in to YouTube in this browser for Premium (ad-free).
+            <a href="https://accounts.google.com/ServiceLogin?service=youtube&continue=http%3A%2F%2F127.0.0.1%3A8765%2F" style="color:#22D3EE">Sign in</a></div></div>
       </div>
     </aside>
 
@@ -1701,7 +1712,7 @@
             <div class="prompt-chip" onclick="submitGoal('summarize CN_Notes.pdf in my Notes folder')">Summarize this PDF</div>
             <div class="prompt-chip" onclick="submitGoal('debug code in current workspace')">Debug my code</div>
             <div class="prompt-chip" onclick="submitGoal('open VS Code with current project')">Open VS Code</div>
-            <div class="prompt-chip" onclick="toggleMusic(true)">Play lo-fi music</div>
+            <div class="prompt-chip" onclick="submitGoal('play lo-fi beats')">Play lo-fi music</div>
             <div class="prompt-chip" onclick="toggleAutomation('focus')">Turn on focus mode</div>
           </div>
         </div>
@@ -2502,7 +2513,10 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
 
     function handleAuraEvent(ev) {
       switch (ev.type) {
-        case 'voice.state': setVoiceState(ev.state); break;
+        case 'voice.state': setVoiceState(ev.state); duckMusic(ev.state !== 'WAIT_WAKE'); break;
+        case 'music.queue': mQueue = ev.tracks || []; playIndex(ev.index || 0); break;
+        case 'music.control': musicControl(ev.action); break;
+        case 'system.volume': showVolume({ percent: ev.percent, muted: ev.muted }); break;
         case 'voice.transcript':
           if (ev.text) {
             showCaption('You', ev.text);
@@ -2862,17 +2876,162 @@ Type 'uname -a' or any shell command to execute through Bubblewrap sandbox.
     // -------------------------------------------------------------
     // 11. Quick Utilities (Music, Apps, Automations, Notebook)
     // -------------------------------------------------------------
-    let musicPlaying = false;
-    function toggleMusic(play) {
-      musicPlaying = play !== undefined ? play : !musicPlaying;
-      const btn = document.getElementById('music-play-btn');
-      if (musicPlaying) {
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
-        speakText('Playing Blinding Lights by The Weeknd.');
-      } else {
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    // ---- Music: YouTube's official embedded player (Premium applies if this browser is signed in) ----
+    let ytPlayer = null, ytReady = false, ytLoading = false, mQueue = [], mIdx = 0, mPlaying = false;
+    let mVolume = 80, mDucked = false, mPendingStart = false;
+    const PLAY_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    const PAUSE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+
+    function ensureYouTube(cb) {
+      if (ytReady) return cb();
+      mPendingStart = true;
+      if (ytLoading) return;
+      ytLoading = true;
+      window.onYouTubeIframeAPIReady = () => {
+        ytPlayer = new YT.Player('yt-player', {
+          width: 200, height: 200,
+          playerVars: { playsinline: 1, controls: 0, rel: 0, modestbranding: 1, origin: location.origin },
+          events: {
+            onReady: () => { ytReady = true; ytPlayer.setVolume(mVolume); if (mPendingStart) { mPendingStart = false; cb(); } },
+            onStateChange: (e) => {
+              if (e.data === 1) setMusicPlaying(true);
+              else if (e.data === 2) setMusicPlaying(false);
+              else if (e.data === 0) musicControl('next');
+            },
+            onError: () => { showCaption('Aura', 'That track cannot be played here, skipping.'); musicControl('next'); },
+            onAutoplayBlocked: () => showCaption('Aura', 'Tap the play button once to allow audio.'),
+          }
+        });
+      };
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      tag.onerror = () => { ytLoading = false; showCaption('Aura', 'Cannot reach YouTube. Check the internet connection.'); };
+      document.head.appendChild(tag);
+    }
+
+    function reportMusicState() {
+      const t = mQueue[mIdx] || {};
+      fetch('/api/x/music.state', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: t.title, artist: t.artist, videoId: t.videoId, playing: mPlaying }) }).catch(() => {});
+    }
+
+    function setMusicPlaying(p) {
+      mPlaying = p;
+      document.getElementById('music-play-btn').innerHTML = p ? PAUSE_ICON : PLAY_ICON;
+      reportMusicState(); publishMediaSession();
+    }
+
+    function renderTrack() {
+      const t = mQueue[mIdx];
+      if (!t) return;
+      document.getElementById('music-title-text').textContent = t.title;
+      document.getElementById('music-artist-text').textContent = t.artist;
+      const art = document.getElementById('music-art');
+      if (t.thumb) { art.style.backgroundImage = 'url("' + t.thumb.replace(/"/g, '') + '")'; art.textContent = ''; }
+      document.getElementById('yt-wrap').style.display = 'block';
+      document.getElementById('music-source').textContent = 'Source: Aura / YouTube Music';
+      publishMediaSession();
+    }
+
+    function playIndex(i) {
+      if (!mQueue.length) return;
+      mIdx = (i + mQueue.length) % mQueue.length;
+      renderTrack();
+      ensureYouTube(() => { ytPlayer.loadVideoById(mQueue[mIdx].videoId); applyVolume(); });
+    }
+
+    function applyVolume() { if (ytReady) ytPlayer.setVolume(mDucked ? Math.round(mVolume * 0.25) : mVolume); }
+
+    async function daemonMusic(action) {
+      try {
+        const r = await fetch('/api/x/music.control', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }) });
+        const d = await r.json();
+        if (d.error) {
+          if (action === 'toggle') submitGoal('play some music'); else showCaption('Aura', d.error);
+        } else { setTimeout(pollSystemMedia, 400); }
+      } catch (e) { showCaption('Aura', 'The Aura daemon is not reachable.'); }
+    }
+
+    function musicControl(action) {
+      if (action === 'volume_up' || action === 'volume_down') { daemonMusic(action); return; }
+      if (!mQueue.length) {            // nothing of ours is loaded: control the computer's real media player
+        if (action !== 'resume') daemonMusic(action);
+        return;
+      }
+      switch (action) {
+        case 'toggle': if (ytReady) (mPlaying ? ytPlayer.pauseVideo() : ytPlayer.playVideo()); break;
+        case 'pause': if (ytReady) ytPlayer.pauseVideo(); break;
+        case 'resume': if (ytReady) ytPlayer.playVideo(); break;
+        case 'next': playIndex(mIdx + 1); break;
+        case 'previous': playIndex(mIdx - 1); break;
       }
     }
+
+    // ---- Real system media (MPRIS on Linux/Pi, Spotify/Music on macOS) ----
+    async function pollSystemMedia() {
+      if (mQueue.length) { document.getElementById('music-source').textContent = 'Source: Aura / YouTube Music'; return; }
+      try {
+        const d = await rpcGet('music.system');
+        const p = d.player;
+        const art = document.getElementById('music-art');
+        if (p) {
+          document.getElementById('music-title-text').textContent = p.title;
+          document.getElementById('music-artist-text').textContent = p.artist || p.player;
+          document.getElementById('music-play-btn').innerHTML = p.status === 'playing' ? PAUSE_ICON : PLAY_ICON;
+          if (p.art) { art.style.backgroundImage = 'url("' + p.art.replace(/"/g, '') + '")'; art.textContent = ''; }
+          else { art.style.backgroundImage = ''; art.innerHTML = '&#9834;'; }
+          document.getElementById('music-source').textContent = 'Source: ' + p.player + ' (system)';
+        } else {
+          document.getElementById('music-title-text').textContent = 'Nothing playing';
+          document.getElementById('music-artist-text').innerHTML = 'Say &ldquo;Aura, play &hellip;&rdquo;';
+          document.getElementById('music-play-btn').innerHTML = PLAY_ICON;
+          art.style.backgroundImage = ''; art.innerHTML = '&#9834;';
+          document.getElementById('music-source').textContent = '';
+        }
+      } catch (e) { /* daemon restarting */ }
+    }
+    setInterval(pollSystemMedia, 3000); pollSystemMedia();
+
+    // ---- Real system volume ----
+    let volTimer = null, volDragging = false;
+    function showVolume(v) {
+      if (!v || volDragging) return;
+      document.getElementById('vol-slider').value = v.percent;
+      document.getElementById('vol-pct').textContent = v.muted ? 'mute' : v.percent + '%';
+      document.getElementById('vol-icon').innerHTML = v.muted || v.percent === 0 ? '&#128263;' : '&#128266;';
+    }
+    function volSliderInput(val) {
+      volDragging = true;
+      document.getElementById('vol-pct').textContent = val + '%';
+      clearTimeout(volTimer);
+      volTimer = setTimeout(async () => {
+        const r = await rpcPost('volume.set', { level: String(val) });
+        volDragging = false; if (!r.error) showVolume(r); else showCaption('Aura', r.error);
+      }, 150);
+    }
+    async function pollVolume() { try { const v = await rpcGet('volume.get'); if (!v.error) showVolume(v); } catch (e) {} }
+    setInterval(pollVolume, 5000); pollVolume();
+
+    // ---- OS media keys / Bluetooth remotes / lock-screen controls drive the HUD player (best effort) ----
+    if ('mediaSession' in navigator) {
+      const ms = { play: 'resume', pause: 'pause', nexttrack: 'next', previoustrack: 'previous' };
+      Object.keys(ms).forEach(a => { try { navigator.mediaSession.setActionHandler(a, () => musicControl(ms[a])); } catch (e) {} });
+    }
+    function publishMediaSession() {
+      if (!('mediaSession' in navigator) || !mQueue[mIdx] || typeof MediaMetadata === 'undefined') return;
+      const t = mQueue[mIdx];
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({ title: t.title, artist: t.artist, artwork: t.thumb ? [{ src: t.thumb }] : [] });
+        navigator.mediaSession.playbackState = mPlaying ? 'playing' : 'paused';
+      } catch (e) {}
+    }
+    setInterval(() => { if (mQueue.length) reportMusicState(); }, 5000);   // heartbeat: tells the daemon our player is alive
+
+    // Keep music quiet while Aura listens or talks so it can hear you.
+    function duckMusic(on) { mDucked = on; applyVolume(); }
+
+    function toggleMusic(play) { musicControl(play === false ? 'pause' : 'toggle'); }
 
     function launchApp(appName) {
       speakText(`Opening ${appName}`);

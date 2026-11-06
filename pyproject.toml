@@ -34,10 +34,14 @@ vision = [
     "mediapipe>=0.10.14",
     "opencv-python>=4.9.0",
 ]
+music = [
+    "ytmusicapi>=1.8.0",
+]
 kokoro = [
     "kokoro-onnx>=0.4.0",
 ]
 rpi = [
+    "ytmusicapi>=1.8.0",
     "openwakeword>=0.6.0",
     "faster-whisper>=1.0.0",
     "piper-tts>=1.2.0",

@@ -9,6 +9,8 @@
 
 > **Run it on a Raspberry Pi connected to a TV:** see [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md) (Pi 3B+ "lite" and Pi 4/5 "full" profiles).
 
+> **Music (YouTube Premium):** [docs/MUSIC.md](docs/MUSIC.md).
+
 > **Agentic OS layers** (memory vault, skills, 3-tier router): see [docs/AGENTIC_OS.md](docs/AGENTIC_OS.md).
 
 ---

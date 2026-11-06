@@ -337,6 +337,10 @@
 | 2026-11-05 | AI Engineer | `SKILL-001` | Skill backbone: SKILL.md registry, 4 built-in skills, 30-day interaction audit, voice-dump->draft skills (approval required), HUD Skills screen. |
 | 2026-11-05 | AI Engineer | `AGENT-011` | 3-tier Router (instant / fast model / worker CLI with approval + background jobs); interaction log; Kokoro TTS backend (untested: needs model files). |
 
+| 2026-11-06 | AI Engineer | `MEDIA-001` | YouTube Music: ytmusicapi search/queue, `music.play`/`music.control` tools, tier-1 voice commands, real HUD player (official embed, Premium via signed-in browser), volume ducking. Browser playback untested. |
+
+| 2026-11-06 | AI Engineer | `MEDIA-002` | Real audio driver (`aura/audio.py`: CoreAudio/PipeWire/ALSA), system media control (`playerctl` MPRIS / macOS Spotify+Music), HUD volume slider + source routing + Media Session hooks. |
+
 ---
 
 ## Important Lessons Learned

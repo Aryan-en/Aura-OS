@@ -26,6 +26,7 @@ from aura.core.config import RouterConfig
 from aura.core.events import bus
 from aura.core.logger import logger
 from aura.memory.db import MemoryDB
+from aura.music import now_playing, system_media
 from aura.skills.registry import Skill, SkillRegistry
 from aura.tools.registry import registry
 from aura.vault.vault import Vault
@@ -42,6 +43,14 @@ _SEARCH = re.compile(r"^(?:search|look up|find)(?: my)?(?: notes| vault| wiki)?(
                      r"^what do i know about\s+(.+)$", re.I)
 _COMPILE = re.compile(r"\b(?:update|compile|organi[sz]e|process|sync) (?:my )?(?:wiki|notes|inbox|vault)\b", re.I)
 _REPORT = re.compile(r"\b(?:read|show|open|play)(?: me)?(?: my| the)?(?: latest| last| newest)? (?:report|brief|output|deliverable)\b", re.I)
+_PLAY = re.compile(r"^(?:please )?(?:play|put on|listen to)(?: me)?(?: some)?\s+(.+?)(?:\s+(?:on|from|in)\s+(?:youtube(?: music)?|yt music|youtube premium))?$", re.I)
+_MUSIC_CTL = [
+    (re.compile(r"^(?:pause|stop)(?: the| my)?(?: music| song| track| playback)$|^pause$", re.I), "pause", "Paused."),
+    (re.compile(r"^(?:resume|continue|unpause)(?: the| my)?(?: music| song| track| playback)?$|^play$", re.I), "resume", "Resuming."),
+    (re.compile(r"^(?:next|skip)(?: the| this)?(?: song| track)?$|^skip$", re.I), "next", "Next track."),
+    (re.compile(r"^(?:previous|go back|last)(?: song| track)$|^previous$", re.I), "previous", "Previous track."),
+]
+_NOW = re.compile(r"\bwhat(?:'s| is) (?:this song|playing|this track)\b|\bwhat song is this\b", re.I)
 _SKILLS = re.compile(r"\b(?:what can you do|list (?:my )?skills|what skills)\b", re.I)
 
 
@@ -121,6 +130,26 @@ class Router:
             snip = top["snippet"][:240]
             said = snip if top["title"].lower()[:30] in snip.lower() else f"From {top['title']}: {snip}"
             return {"success": True, "source": "vault", "reply": said, "results": hits}
+        for rx, action, said in _MUSIC_CTL:
+            if rx.match(t):
+                res = await registry.execute("music.control", action=action)
+                return {"success": res["success"], "source": "music",
+                        "reply": said if res["success"] else res["error"]}
+        if _NOW.search(t):
+            d = now_playing.describe() if now_playing.fresh() else None
+            if d is None:
+                cur = await system_media.status()
+                if cur:
+                    d = f"{cur['title']} by {cur['artist']}" + ("" if cur["status"] == "playing" else ", paused")
+            return {"success": True, "source": "music", "reply": d or "Nothing is playing."}
+        if (mm := _PLAY.match(t)) and not re.match(r"^(?:a |the )?(?:game|role|part|video game|trick)\b", mm.group(1), re.I):
+            q = mm.group(1).strip()
+            q = "top hits" if q in ("music", "some music", "songs") else q
+            res = await registry.execute("music.play", query=q)
+            if not res["success"]:
+                return {"success": False, "source": "music", "reply": res["error"]}
+            d = res["data"]
+            return {"success": True, "source": "music", "reply": f"Playing {d['title']} by {d['artist']}."}
         if _SKILLS.search(t):
             names = ", ".join(s.name.replace("-", " ") for s in self.skills.skills.values())
             return {"success": True, "source": "skills", "reply": f"My skills are: {names}."}

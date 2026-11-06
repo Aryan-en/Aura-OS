@@ -25,6 +25,7 @@ from aura.core.logger import logger, setup_logger
 from aura.ipc.protocol import IPCRequest
 from aura.ipc.server import AsyncUnixSocketServer
 from aura.memory.db import MemoryDB
+from aura.music import now_playing
 from aura.skills import SkillRegistry
 from aura.skills.audit import audit_history, from_voice_dump
 from aura.tools.registry import registry
@@ -107,6 +108,11 @@ class AuraDaemon:
         self.ipc_server.register("skills.reject", self._rpc(lambda p: {"ok": self.skills.reject(str(p.get("name", "")))}))
         self.ipc_server.register("skills.audit", self._handle_audit)
         self.ipc_server.register("skills.from_voice_dump", self._handle_voice_dump)
+        self.ipc_server.register("music.state", self._rpc(lambda p: now_playing.update(p) or {"ok": True}))
+        self.ipc_server.register("music.system", self._handle_music_system)
+        self.ipc_server.register("music.control", self._handle_music_control)
+        self.ipc_server.register("volume.get", self._handle_volume_get)
+        self.ipc_server.register("volume.set", self._handle_volume_set)
         self.ipc_server.register("router.stats", self._rpc(lambda p: self.router.stats()))
         self.ipc_server.register("memory.list", self._handle_memory_list)
         self.ipc_server.register("memory.set", self._handle_memory_set)
@@ -130,6 +136,28 @@ class AuraDaemon:
         async def handler(request: IPCRequest) -> Dict[str, Any]:
             return fn(request.params)  # type: ignore[no-any-return]
         return handler
+
+    async def _handle_music_system(self, request: IPCRequest) -> Dict[str, Any]:
+        from aura.music import system_media
+
+        return {"player": await system_media.status()}
+
+    async def _handle_music_control(self, request: IPCRequest) -> Dict[str, Any]:
+        res = await registry.execute("music.control", action=str(request.params.get("action", "")))
+        if not res["success"]:
+            raise ValueError(res["error"])
+        return res["data"]  # type: ignore[no-any-return]
+
+    async def _handle_volume_get(self, request: IPCRequest) -> Dict[str, Any]:
+        from aura import audio
+
+        return await audio.get_volume()
+
+    async def _handle_volume_set(self, request: IPCRequest) -> Dict[str, Any]:
+        res = await registry.execute("system.set_volume", level=str(request.params.get("level", "")))
+        if not res["success"]:
+            raise ValueError(res["error"])
+        return res["data"]  # type: ignore[no-any-return]
 
     async def _handle_vault_compile(self, request: IPCRequest) -> Dict[str, Any]:
         return await self.router.compile_wiki()

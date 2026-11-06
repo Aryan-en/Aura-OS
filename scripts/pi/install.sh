@@ -40,7 +40,7 @@ info "Board: $MODEL | RAM: ${RAM_MB} MB | profile: $PROFILE"
 # ---- 1. system packages -------------------------------------------------------
 info "Installing system packages..."
 sudo apt-get update -y
-PKGS=(python3 python3-venv python3-pip alsa-utils espeak-ng sox bubblewrap git curl)
+PKGS=(python3 python3-venv python3-pip alsa-utils espeak-ng sox bubblewrap git curl playerctl)
 if [[ "${AURA_KIOSK:-1}" == 1 ]]; then
   CHROMIUM=chromium; apt-cache show chromium >/dev/null 2>&1 || CHROMIUM=chromium-browser
   PKGS+=(cage "$CHROMIUM" fonts-noto-color-emoji fonts-dejavu-core seatd)
@@ -53,7 +53,7 @@ ok "Packages installed."
 info "Creating Python environment..."
 python3 -m venv --system-site-packages "$ROOT/.venv"
 "$ROOT/.venv/bin/pip" install --upgrade pip wheel >/dev/null
-EXTRA=""; [[ "$PROFILE" == full ]] && EXTRA="[rpi]"
+EXTRA="[music]"; [[ "$PROFILE" == full ]] && EXTRA="[rpi]"
 "$ROOT/.venv/bin/pip" install -e ".${EXTRA}"
 ok "Aura installed ($PROFILE profile)."
 

@@ -44,8 +44,8 @@ SENSITIVE_NAMES = {".env", "secrets.env", "ui_token", "id_rsa", "id_ed25519", "a
 SENSITIVE_DIRS = {".ssh", ".gnupg", ".aws"}
 
 # IPC methods the HUD may call generically (vault/skills/router). Everything else needs a dedicated route.
-READ_RPCS = {"vault.list", "vault.read", "vault.search", "skills.list", "router.stats"}
-WRITE_RPCS = {"vault.add", "vault.compile", "skills.run", "skills.approve", "skills.reject",
+READ_RPCS = {"music.system", "volume.get", "vault.list", "vault.read", "vault.search", "skills.list", "router.stats"}
+WRITE_RPCS = {"music.control", "volume.set", "music.state", "vault.add", "vault.compile", "skills.run", "skills.approve", "skills.reject",
               "skills.audit", "skills.from_voice_dump"}
 
 SLOW_RPCS = {"voice.interact", "agent.submit_goal", "skills.run", "vault.compile",
